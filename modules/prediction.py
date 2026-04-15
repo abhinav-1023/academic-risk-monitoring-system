@@ -1,47 +1,22 @@
 import pickle
-import numpy as np
 import os
+import numpy as np
 
-# -----------------------------------------
-# Load Trained ML Model
-# -----------------------------------------
+model_path = "models/risk_model.pkl"
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "..", "models", "risk_model.pkl")
+if os.path.exists(model_path):
+    model = pickle.load(open(model_path, "rb"))
+else:
+    model = None
 
-model = pickle.load(open(model_path, "rb"))
-
-
-# -----------------------------------------
-# Prediction Function
-# -----------------------------------------
 
 def predict_risk(attendance, internal, participation, absences, gpa):
 
-    """
-    Predict student academic risk level.
+    if model is None:
+        return "Model not loaded"
 
-    Parameters:
-    attendance (float) - attendance percentage
-    internal (float) - internal marks
-    participation (float) - class participation score
-    absences (int) - number of absences
-    gpa (float) - previous semester GPA
-    """
+    data = np.array([[attendance, internal, participation, absences, gpa]])
 
-    # Convert inputs to numpy array
-    data = np.array([
-        [
-            attendance,
-            internal,
-            participation,
-            absences,
-            gpa
-        ]
-    ])
-
-    # Predict using trained model
     prediction = model.predict(data)
 
-    # Return predicted class
     return prediction[0]
