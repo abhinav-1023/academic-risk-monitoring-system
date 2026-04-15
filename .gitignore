@@ -1,5 +1,12 @@
 __pycache__/
 *.pyc
-*.pkl
-*.db
+*.pyo
+*.pyd
+
+database/college_system.db
+
+models/risk_model.pkl
+
 .env
+
+.streamlit/
