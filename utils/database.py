@@ -1,35 +1,34 @@
 import sqlite3
 import os
 
-
+# -----------------------------------------
 # Database Path
-
+# -----------------------------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, "..", "database", "college_system.db")
 
 
-
+# -----------------------------------------
 # Create Connection
-
+# -----------------------------------------
 
 def create_connection():
     return sqlite3.connect(db_path)
 
 
-
-# Create Tables
-
+# -----------------------------------------
+# Create Tables + Default Data
+# -----------------------------------------
 
 def create_tables():
 
     conn = create_connection()
     cursor = conn.cursor()
 
-    
+    # -----------------------------
     # USERS TABLE
-    
-
+    # -----------------------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,10 +39,9 @@ def create_tables():
     )
     """)
 
-    
+    # -----------------------------
     # STUDENTS TABLE
-    
-
+    # -----------------------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,10 +51,9 @@ def create_tables():
     )
     """)
 
-    
+    # -----------------------------
     # TEACHERS TABLE
-    
-
+    # -----------------------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS teachers(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,10 +62,9 @@ def create_tables():
     )
     """)
 
-    
+    # -----------------------------
     # SUBJECTS TABLE
-    
-
+    # -----------------------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS subjects(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,10 +74,9 @@ def create_tables():
     )
     """)
 
-    
+    # -----------------------------
     # MARKS TABLE
-    
-
+    # -----------------------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS marks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,27 +89,40 @@ def create_tables():
     )
     """)
 
+    # -----------------------------
+    # CREATE DEFAULT ADMIN
+    # -----------------------------
+    cursor.execute("SELECT * FROM users WHERE username='admin'")
+
+    if not cursor.fetchone():
+        cursor.execute("""
+        INSERT INTO users (username, password, role, department)
+        VALUES ('admin', 'admin123', 'Academic Coordinator', 'CSE')
+        """)
+        print("Default admin created")
+
     conn.commit()
     conn.close()
 
 
-
+# -----------------------------------------
 # Initialize Database
-
+# -----------------------------------------
 
 def initialize_database():
 
-    if not os.path.exists(os.path.join(BASE_DIR, "..", "database")):
-        os.makedirs(os.path.join(BASE_DIR, "..", "database"))
+    db_folder = os.path.join(BASE_DIR, "..", "database")
+
+    if not os.path.exists(db_folder):
+        os.makedirs(db_folder)
 
     create_tables()
 
-    print("Database initialized successfully.")
+    print("Database initialized successfully")
 
 
 
-# Run Directly
-
+# Run directly (for testing)
 
 if __name__ == "__main__":
     initialize_database()
