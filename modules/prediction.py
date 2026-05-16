@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # -----------------------------------
-# GET BASE DIRECTORY
+# BASE DIRECTORY
 # -----------------------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,19 +19,33 @@ model_path = os.path.join(
     "risk_model.pkl"
 )
 
+print("MODEL PATH:", model_path)
+print("MODEL EXISTS:", os.path.exists(model_path))
+
 # -----------------------------------
 # LOAD MODEL
 # -----------------------------------
 
 model = None
 
-if os.path.exists(model_path):
+try:
 
-    with open(model_path, "rb") as file:
-        model = pickle.load(file)
+    if os.path.exists(model_path):
+
+        with open(model_path, "rb") as file:
+            model = pickle.load(file)
+
+        print("MODEL LOADED SUCCESSFULLY")
+
+    else:
+        print("MODEL FILE NOT FOUND")
+
+except Exception as e:
+
+    print("MODEL LOADING ERROR:", e)
 
 # -----------------------------------
-# PREDICT FUNCTION
+# PREDICTION FUNCTION
 # -----------------------------------
 
 def predict_risk(attendance, internal, participation, absences, gpa):
