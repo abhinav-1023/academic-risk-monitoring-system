@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import pickle
 
+from sklearn.metrics import confusion_matrix
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -92,10 +94,12 @@ accuracy = accuracy_score(y_test, y_pred)
 print("Model Accuracy:", round(accuracy * 100, 2), "%")
 
 
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix of Model",cm)
+
 # Save Model
 
 
 with open("models/risk_model.pkl","wb") as f:
     pickle.dump(model,f)
-
 print("Model saved")
