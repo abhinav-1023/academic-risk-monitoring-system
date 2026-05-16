@@ -196,24 +196,6 @@ def teacher_dashboard():
         st.subheader("Analytics Dashboard")
 
         
-        # PIE CHART
-        
-
-        labels = ['Low Risk', 'Medium Risk', 'High Risk']
-        sizes = [low_count, medium_count, high_count]
-
-        fig1, ax1 = plt.subplots()
-
-        ax1.pie(
-            sizes,
-            labels=labels,
-            autopct='%1.1f%%'
-        )
-
-        ax1.set_title("Risk Distribution")
-
-        st.pyplot(fig1)
-
         
         # BAR CHART
         
