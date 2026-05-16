@@ -1,50 +1,39 @@
-import pickle
+import pandas as pd
 import os
-import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
-
-print("NEW PREDICTION FILE LOADED")
 # -----------------------------------
 # BASE DIRECTORY
 # -----------------------------------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# -----------------------------------
-# MODEL PATH
-# -----------------------------------
-
-model_path = os.path.join(
+dataset_path = os.path.join(
     BASE_DIR,
     "..",
-    "models",
-    "risk_model.pkl"
+    "data",
+    "student_performance_dataset.csv"
 )
 
-print("MODEL PATH:", model_path)
-print("MODEL EXISTS:", os.path.exists(model_path))
-
 # -----------------------------------
-# LOAD MODEL
+# TRAIN MODEL DIRECTLY
 # -----------------------------------
 
-model = None
+df = pd.read_csv(dataset_path)
 
-try:
+X = df[[
+    "attendance",
+    "internal",
+    "participation",
+    "absences",
+    "gpa"
+]]
 
-    if os.path.exists(model_path):
+y = df["risk"]
 
-        with open(model_path, "rb") as file:
-            model = pickle.load(file)
+model = RandomForestClassifier()
 
-        print("MODEL LOADED SUCCESSFULLY")
-
-    else:
-        print("MODEL FILE NOT FOUND")
-
-except Exception as e:
-
-    print("MODEL LOADING ERROR:", e)
+model.fit(X, y)
 
 # -----------------------------------
 # PREDICTION FUNCTION
@@ -52,12 +41,13 @@ except Exception as e:
 
 def predict_risk(attendance, internal, participation, absences, gpa):
 
-    if model is None:
-        return "Model not loaded"
-
-    data = np.array([
-        [attendance, internal, participation, absences, gpa]
-    ])
+    data = [[
+        attendance,
+        internal,
+        participation,
+        absences,
+        gpa
+    ]]
 
     prediction = model.predict(data)
 
