@@ -2,6 +2,8 @@ import pickle
 import os
 import numpy as np
 
+
+print("NEW PREDICTION FILE LOADED")
 # -----------------------------------
 # BASE DIRECTORY
 # -----------------------------------
