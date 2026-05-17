@@ -7,91 +7,63 @@ from modules.prediction import predict_risk
 
 def teacher_dashboard():
 
-    st.header("Teacher Dashboard")
+    st.header("AI Academic Risk Monitoring System")
 
-    username = st.session_state.username
-
-    # -----------------------------------
-    # GET LOGGED IN TEACHER
-    # -----------------------------------
-
-    user_response = supabase.table(
-        "users"
-    ).select("*").eq(
-        "username",
-        username
-    ).execute()
-
-    user_data = user_response.data
-
-    if not user_data:
-
-        st.warning("Teacher not found")
-
-        return
-
-    user_id = user_data[0]["id"]
+    st.subheader("Teacher Dashboard")
 
     # -----------------------------------
-    # GET TEACHER RECORD
-    # -----------------------------------
-
-    teacher_response = supabase.table(
-        "teachers"
-    ).select("*").eq(
-        "user_id",
-        user_id
-    ).execute()
-
-    teacher_data = teacher_response.data
-
-    if not teacher_data:
-
-        st.warning("Teacher record not found")
-
-        return
-
-    teacher_id = teacher_data[0]["id"]
-
-    # -----------------------------------
-    # GET ONLY ASSIGNED SUBJECTS
+    # GET SUBJECTS
     # -----------------------------------
 
     response = supabase.table(
         "subjects"
-    ).select("*").eq(
-        "teacher_id",
-        teacher_id
-    ).execute()
+    ).select("*").execute()
 
     subjects = response.data
 
     if not subjects:
 
-        st.warning(
-            "No subjects assigned"
-        )
-
+        st.warning("No subjects found")
         return
 
     subject_dict = {
 
         s["subject_name"]:
-        (s["id"], s["semester"])
+        (
+            s["id"],
+            s["semester"]
+        )
 
         for s in subjects
     }
 
-    subject_name = st.selectbox(
+    # -----------------------------------
+    # SUBJECT SELECTION
+    # -----------------------------------
 
-        "Select Subject",
+    col1, col2 = st.columns([3, 1])
 
-        list(subject_dict.keys())
-    )
+    with col1:
 
-    subject_id, semester = subject_dict[subject_name]
+        subject_name = st.selectbox(
 
-    st.write("Semester:", semester)
+            "Select Subject",
+
+            list(subject_dict.keys())
+        )
+
+    subject_id, semester = subject_dict[
+        subject_name
+    ]
+
+    with col2:
+
+        st.metric(
+            "Semester",
+            semester
+        )
+
+    st.markdown("---")
 
     # -----------------------------------
     # GET STUDENTS
@@ -109,7 +81,6 @@ def teacher_dashboard():
     if not students:
 
         st.warning("No students found")
-
         return
 
     student_names = [
@@ -120,163 +91,213 @@ def teacher_dashboard():
     ]
 
     # -----------------------------------
-    # DATA ENTRY
+    # DATA ENTRY TABLE
     # -----------------------------------
+
+    st.subheader(
+        "Student Marks Entry"
+    )
 
     df = pd.DataFrame({
 
-        "Student": student_names,
+        "Student":
+            student_names,
 
-        "Attendance": [75] * len(student_names),
+        "Attendance":
+            [75] * len(student_names),
 
-        "Internal": [15] * len(student_names),
+        "Internal":
+            [15] * len(student_names),
 
-        "Participation": [5] * len(student_names),
+        "Participation":
+            [5] * len(student_names),
 
-        "Assignment": [15] * len(student_names),
+        "Assignment":
+            [15] * len(student_names),
 
-        "Quiz": [10] * len(student_names),
+        "Quiz":
+            [10] * len(student_names),
 
-        "Midsem": [20] * len(student_names)
+        "Midsem":
+            [20] * len(student_names)
     })
 
     edited_df = st.data_editor(
 
         df,
 
-        use_container_width=True
+        use_container_width=True,
+
+        hide_index=True
     )
+
+    # -----------------------------------
+    # BUTTONS
+    # -----------------------------------
+
+    col1, col2 = st.columns(2)
 
     # -----------------------------------
     # SAVE MARKS
     # -----------------------------------
 
-    if st.button("Save Marks"):
+    with col1:
 
-        for i, row in edited_df.iterrows():
+        if st.button(
+            "💾 Save Marks",
+            use_container_width=True
+        ):
 
-            student_id = students[i]["id"]
+            for i, row in edited_df.iterrows():
 
-            attendance = row["Attendance"]
+                student_id = students[i]["id"]
 
-            internal = row["Internal"]
+                attendance = row["Attendance"]
 
-            participation = row["Participation"]
+                internal = row["Internal"]
 
-            assignment = row["Assignment"]
+                participation = row["Participation"]
 
-            quiz = row["Quiz"]
+                assignment = row["Assignment"]
 
-            midsem = row["Midsem"]
+                quiz = row["Quiz"]
 
-            # -----------------------------------
-            # PREDICT
-            # -----------------------------------
+                midsem = row["Midsem"]
 
-            risk = predict_risk(
+                # -----------------------------------
+                # PREDICT RISK
+                # -----------------------------------
 
-                attendance,
+                risk = predict_risk(
 
-                internal,
+                    attendance,
 
-                participation,
+                    internal,
 
-                assignment,
+                    participation,
 
-                quiz,
+                    assignment,
 
-                midsem
-            )
+                    quiz,
 
-            # -----------------------------------
-            # CHECK EXISTING RECORD
-            # -----------------------------------
+                    midsem
+                )
 
-            existing = supabase.table(
-                "marks"
-            ).select("*").eq(
-                "student_id",
-                student_id
-            ).eq(
-                "subject_id",
-                subject_id
-            ).execute()
+                # -----------------------------------
+                # CHECK EXISTING RECORD
+                # -----------------------------------
 
-            # -----------------------------------
-            # UPDATE
-            # -----------------------------------
-
-            if existing.data:
-
-                supabase.table(
+                existing = supabase.table(
                     "marks"
-                ).update({
-
-                    "attendance": attendance,
-
-                    "internal_marks": internal,
-
-                    "participation": participation,
-
-                    "assignment_score": assignment,
-
-                    "quiz_score": quiz,
-
-                    "midsem_marks": midsem,
-
-                    "risk_level": risk
-
-                }).eq(
-
+                ).select("*").eq(
                     "student_id",
                     student_id
-
                 ).eq(
-
                     "subject_id",
                     subject_id
-
                 ).execute()
 
-            # -----------------------------------
-            # INSERT
-            # -----------------------------------
+                # -----------------------------------
+                # UPDATE OR INSERT
+                # -----------------------------------
 
-            else:
+                if existing.data:
 
-                supabase.table(
-                    "marks"
-                ).insert({
+                    record_id = existing.data[0]["id"]
 
-                    "student_id": student_id,
+                    supabase.table(
+                        "marks"
+                    ).update({
 
-                    "subject_id": subject_id,
+                        "attendance":
+                            attendance,
 
-                    "attendance": attendance,
+                        "internal_marks":
+                            internal,
 
-                    "internal_marks": internal,
+                        "participation":
+                            participation,
 
-                    "participation": participation,
+                        "assignment_score":
+                            assignment,
 
-                    "assignment_score": assignment,
+                        "quiz_score":
+                            quiz,
 
-                    "quiz_score": quiz,
+                        "midsem_marks":
+                            midsem,
 
-                    "midsem_marks": midsem,
+                        "risk_level":
+                            risk
 
-                    "risk_level": risk
+                    }).eq(
+                        "id",
+                        record_id
+                    ).execute()
 
-                }).execute()
+                else:
 
-        st.success("Marks Saved Successfully")
+                    supabase.table(
+                        "marks"
+                    ).insert({
+
+                        "student_id":
+                            student_id,
+
+                        "subject_id":
+                            subject_id,
+
+                        "attendance":
+                            attendance,
+
+                        "internal_marks":
+                            internal,
+
+                        "participation":
+                            participation,
+
+                        "assignment_score":
+                            assignment,
+
+                        "quiz_score":
+                            quiz,
+
+                        "midsem_marks":
+                            midsem,
+
+                        "risk_level":
+                            risk
+
+                    }).execute()
+
+            st.success(
+                "Marks Saved Successfully"
+            )
 
     # -----------------------------------
     # GENERATE REPORT
     # -----------------------------------
 
-    if st.button("Generate Risk Report"):
+    with col2:
 
-        st.subheader("Student Risk Report")
+        generate = st.button(
+
+            "📊 Generate Risk Report",
+
+            use_container_width=True
+        )
+
+    # -----------------------------------
+    # REPORT
+    # -----------------------------------
+
+    if generate:
+
+        st.markdown("---")
+
+        st.subheader(
+            "Student Risk Report"
+        )
 
         marks_response = supabase.table(
             "marks"
@@ -290,14 +311,23 @@ def teacher_dashboard():
         if not marks_data:
 
             st.warning("No data found")
-
             return
 
         chart_students = []
 
-        chart_marks = []
+        chart_internal = []
 
-        for data in marks_data:
+        chart_attendance = []
+
+        chart_quiz = []
+
+        # -----------------------------------
+        # RISK CARDS
+        # -----------------------------------
+
+        cols = st.columns(2)
+
+        for idx, data in enumerate(marks_data):
 
             student_id = data["student_id"]
 
@@ -307,50 +337,140 @@ def teacher_dashboard():
 
                 if s["id"] == student_id:
 
-                    student_name = s["student_name"]
+                    student_name = s[
+                        "student_name"
+                    ]
 
             risk = data["risk_level"]
 
-            if risk == "High":
+            with cols[idx % 2]:
 
-                st.error(
-                    f"{student_name} → HIGH RISK"
-                )
+                if risk == "High":
 
-            elif risk == "Medium":
+                    st.error(
+                        f"🔴 {student_name} → HIGH RISK"
+                    )
 
-                st.warning(
-                    f"{student_name} → MEDIUM RISK"
-                )
+                elif risk == "Medium":
 
-            else:
+                    st.warning(
+                        f"🟠 {student_name} → MEDIUM RISK"
+                    )
 
-                st.success(
-                    f"{student_name} → LOW RISK"
-                )
+                else:
 
-            chart_students.append(student_name)
+                    st.success(
+                        f"🟢 {student_name} → LOW RISK"
+                    )
 
-            chart_marks.append(
+            chart_students.append(
+                student_name
+            )
+
+            chart_internal.append(
                 data["internal_marks"]
             )
 
+            chart_attendance.append(
+                data["attendance"]
+            )
+
+            chart_quiz.append(
+                data["quiz_score"]
+            )
+
+        st.markdown("---")
+
         # -----------------------------------
-        # BAR CHART
+        # PERFORMANCE ANALYTICS
         # -----------------------------------
-
-        chart_df = pd.DataFrame({
-
-            "Students": chart_students,
-
-            "Marks": chart_marks
-
-        })
 
         st.subheader(
-            "Student Performance Comparison"
+            "Performance Analytics"
         )
 
-        st.bar_chart(
-            chart_df.set_index("Students")
+        col1, col2 = st.columns(2)
+
+        # -----------------------------------
+        # INTERNAL MARKS
+        # -----------------------------------
+
+        with col1:
+
+            internal_df = pd.DataFrame({
+
+                "Students":
+                    chart_students,
+
+                "Internal":
+                    chart_internal
+            })
+
+            st.markdown(
+                "### Internal Marks"
+            )
+
+            st.bar_chart(
+
+                internal_df.set_index(
+                    "Students"
+                ),
+
+                height=250
+            )
+
+        # -----------------------------------
+        # ATTENDANCE
+        # -----------------------------------
+
+        with col2:
+
+            attendance_df = pd.DataFrame({
+
+                "Students":
+                    chart_students,
+
+                "Attendance":
+                    chart_attendance
+            })
+
+            st.markdown(
+                "### Attendance"
+            )
+
+            st.line_chart(
+
+                attendance_df.set_index(
+                    "Students"
+                ),
+
+                height=250
+            )
+
+        st.markdown("")
+
+        # -----------------------------------
+        # QUIZ PERFORMANCE
+        # -----------------------------------
+
+        quiz_df = pd.DataFrame({
+
+            "Students":
+                chart_students,
+
+            "Quiz":
+                chart_quiz
+        })
+
+        st.markdown(
+            "### Quiz Performance"
+        )
+
+        st.area_chart(
+
+            quiz_df.set_index(
+                "Students"
+            ),
+
+            height=220
         )
