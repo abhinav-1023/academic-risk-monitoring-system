@@ -1,9 +1,9 @@
-import pickle
 import os
+import joblib
 import numpy as np
 
-
 print("NEW PREDICTION FILE LOADED")
+
 # -----------------------------------
 # BASE DIRECTORY
 # -----------------------------------
@@ -14,15 +14,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # MODEL PATH
 # -----------------------------------
 
-model_path = os.path.join(
-    BASE_DIR,
-    "..",
-    "models",
-    "risk_model.pkl"
+MODEL_PATH = os.path.abspath(
+    os.path.join(
+        BASE_DIR,
+        "..",
+        "models",
+        "risk_model.pkl"
+    )
 )
 
-print("MODEL PATH:", model_path)
-print("MODEL EXISTS:", os.path.exists(model_path))
+print("MODEL PATH:", MODEL_PATH)
+print("MODEL EXISTS:", os.path.exists(MODEL_PATH))
 
 # -----------------------------------
 # LOAD MODEL
@@ -32,14 +34,14 @@ model = None
 
 try:
 
-    if os.path.exists(model_path):
+    if os.path.exists(MODEL_PATH):
 
-        with open(model_path, "rb") as file:
-            model = pickle.load(file)
+        model = joblib.load(MODEL_PATH)
 
         print("MODEL LOADED SUCCESSFULLY")
 
     else:
+
         print("MODEL FILE NOT FOUND")
 
 except Exception as e:
@@ -50,15 +52,37 @@ except Exception as e:
 # PREDICTION FUNCTION
 # -----------------------------------
 
-def predict_risk(attendance, internal, participation, absences, gpa):
+def predict_risk(
+    attendance,
+    internal,
+    participation,
+    assignment,
+    quiz,
+    midsem
+):
 
     if model is None:
         return "Model not loaded"
 
-    data = np.array([
-        [attendance, internal, participation, absences, gpa]
-    ])
+    try:
 
-    prediction = model.predict(data)
+        # Convert input into NumPy array
+        data = np.array([
+            [
+                attendance,
+                internal,
+                participation,
+                assignment,
+                quiz,
+                midsem
+            ]
+        ])
 
-    return prediction[0]
+        # Predict risk
+        prediction = model.predict(data)
+
+        return prediction[0]
+
+    except Exception as e:
+
+        return f"Prediction Error: {e}"

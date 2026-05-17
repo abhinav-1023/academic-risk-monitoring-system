@@ -2,13 +2,29 @@ import streamlit as st
 import sqlite3
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(BASE_DIR, "..", "database", "college_system.db")
+# -----------------------------------
+# DATABASE PATH
+# -----------------------------------
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+db_path = os.path.join(
+    BASE_DIR,
+    "..",
+    "database",
+    "college_system.db"
+)
+
+# -----------------------------------
+# DATABASE CONNECTION
+# -----------------------------------
 
 def get_connection():
     return sqlite3.connect(db_path)
 
+# -----------------------------------
+# ADMIN DASHBOARD
+# -----------------------------------
 
 def admin_dashboard():
 
@@ -27,117 +43,209 @@ def admin_dashboard():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # ------------------------------------------------
+    # =================================================
     # CREATE TEACHER
-    # ------------------------------------------------
+    # =================================================
 
     if menu == "Create Teacher":
 
         st.subheader("Create Teacher")
 
         username = st.text_input("Teacher Username")
-        password = st.text_input("Password", type="password")
+
+        password = st.text_input(
+            "Password",
+            type="password"
+        )
+
         department = st.text_input("Department")
 
         if st.button("Create Teacher"):
 
-            cursor.execute(
-                """
-                INSERT INTO users (username, password, role, department)
-                VALUES (?, ?, 'Teacher', ?)
-                """,
-                (username, password, department)
-            )
+            try:
 
-            user_id = cursor.lastrowid
+                cursor.execute(
+                    """
+                    INSERT INTO users
+                    (username, password, role, department)
+                    VALUES (?, ?, 'Teacher', ?)
+                    """,
+                    (
+                        username,
+                        password,
+                        department
+                    )
+                )
 
-            cursor.execute(
-                """
-                INSERT INTO teachers (user_id, department)
-                VALUES (?, ?)
-                """,
-                (user_id, department)
-            )
+                user_id = cursor.lastrowid
 
-            conn.commit()
+                cursor.execute(
+                    """
+                    INSERT INTO teachers
+                    (user_id, department)
+                    VALUES (?, ?)
+                    """,
+                    (
+                        user_id,
+                        department
+                    )
+                )
 
-            st.success("Teacher created successfully")
+                conn.commit()
 
-    # ------------------------------------------------
+                st.success(
+                    "Teacher created successfully"
+                )
+
+            except Exception as e:
+
+                st.error(f"Error: {e}")
+
+    # =================================================
     # CREATE STUDENT
-    # ------------------------------------------------
+    # =================================================
 
     elif menu == "Create Student":
 
         st.subheader("Create Student")
 
-        username = st.text_input("Student Username")
-        password = st.text_input("Password", type="password")
-        semester = st.number_input("Semester", 1, 8)
-        gpa = st.number_input("Previous GPA", 0.0, 10.0)
+        student_name = st.text_input(
+            "Student Full Name"
+        )
+
+        username = st.text_input(
+            "Student Username"
+        )
+
+        password = st.text_input(
+            "Password",
+            type="password"
+        )
+
+        semester = st.selectbox(
+            "Current Semester",
+            [1, 2, 3, 4, 5, 6, 7, 8]
+        )
 
         if st.button("Create Student"):
 
-            cursor.execute(
-                """
-                INSERT INTO users (username, password, role, department)
-                VALUES (?, ?, 'Student', 'CSE')
-                """,
-                (username, password)
-            )
+            try:
 
-            user_id = cursor.lastrowid
+                # Insert into users table
+                cursor.execute(
+                    """
+                    INSERT INTO users
+                    (username, password, role, department)
+                    VALUES (?, ?, 'Student', 'CSE')
+                    """,
+                    (
+                        username,
+                        password
+                    )
+                )
 
-            cursor.execute(
-                """
-                INSERT INTO students (user_id, semester, previous_gpa)
-                VALUES (?, ?, ?)
-                """,
-                (user_id, semester, gpa)
-            )
+                user_id = cursor.lastrowid
 
-            conn.commit()
+                # Insert into students table
+                cursor.execute(
+                    """
+                    INSERT INTO students
+                    (user_id, student_name, semester)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        user_id,
+                        student_name,
+                        semester
+                    )
+                )
 
-            st.success("Student created successfully")
+                conn.commit()
 
-    # ------------------------------------------------
+                st.success(
+                    f"Student '{student_name}' created successfully"
+                )
+
+            except Exception as e:
+
+                st.error(f"Error: {e}")
+
+    # =================================================
     # CREATE SUBJECT
-    # ------------------------------------------------
+    # =================================================
 
     elif menu == "Create Subject":
 
         st.subheader("Create Subject")
 
-        subject_name = st.text_input("Subject Name")
-        semester = st.number_input("Semester", 1, 8)
+        subject_name = st.text_input(
+            "Subject Name"
+        )
+
+        semester = st.selectbox(
+            "Semester",
+            [1, 2, 3, 4, 5, 6, 7, 8]
+        )
 
         if st.button("Create Subject"):
 
-            cursor.execute(
-                """
-                INSERT INTO subjects (subject_name, semester)
-                VALUES (?, ?)
-                """,
-                (subject_name, semester)
-            )
+            try:
 
-            conn.commit()
+                cursor.execute(
+                    """
+                    INSERT INTO subjects
+                    (subject_name, semester)
+                    VALUES (?, ?)
+                    """,
+                    (
+                        subject_name,
+                        semester
+                    )
+                )
 
-            st.success("Subject created successfully")
+                conn.commit()
 
-    # ------------------------------------------------
+                st.success(
+                    "Subject created successfully"
+                )
+
+            except Exception as e:
+
+                st.error(f"Error: {e}")
+
+    # =================================================
     # ASSIGN TEACHER TO SUBJECT
-    # ------------------------------------------------
+    # =================================================
 
     elif menu == "Assign Teacher to Subject":
 
         st.subheader("Assign Teacher")
 
-        # get subjects
-        cursor.execute("SELECT id, subject_name FROM subjects")
+        # -----------------------------------
+        # FETCH SUBJECTS
+        # -----------------------------------
+
+        cursor.execute(
+            """
+            SELECT id, subject_name
+            FROM subjects
+            """
+        )
+
         subjects = cursor.fetchall()
 
-        subject_dict = {name: sid for sid, name in subjects}
+        if not subjects:
+
+            st.warning(
+                "No subjects available"
+            )
+
+            return
+
+        subject_dict = {
+            name: sid
+            for sid, name in subjects
+        }
 
         subject_name = st.selectbox(
             "Select Subject",
@@ -146,16 +254,33 @@ def admin_dashboard():
 
         subject_id = subject_dict[subject_name]
 
-        # get teachers
-        cursor.execute("""
-        SELECT teachers.id, users.username
-        FROM teachers
-        JOIN users ON teachers.user_id = users.id
-        """)
+        # -----------------------------------
+        # FETCH TEACHERS
+        # -----------------------------------
+
+        cursor.execute(
+            """
+            SELECT teachers.id, users.username
+            FROM teachers
+            JOIN users
+            ON teachers.user_id = users.id
+            """
+        )
 
         teachers = cursor.fetchall()
 
-        teacher_dict = {name: tid for tid, name in teachers}
+        if not teachers:
+
+            st.warning(
+                "No teachers available"
+            )
+
+            return
+
+        teacher_dict = {
+            name: tid
+            for tid, name in teachers
+        }
 
         teacher_name = st.selectbox(
             "Select Teacher",
@@ -164,17 +289,38 @@ def admin_dashboard():
 
         teacher_id = teacher_dict[teacher_name]
 
+        # -----------------------------------
+        # ASSIGN BUTTON
+        # -----------------------------------
+
         if st.button("Assign Teacher"):
 
-            cursor.execute(
-                """
-                UPDATE subjects
-                SET teacher_id=?
-                WHERE id=?
-                """,
-                (teacher_id, subject_id)
-            )
+            try:
 
-            conn.commit()
+                cursor.execute(
+                    """
+                    UPDATE subjects
+                    SET teacher_id=?
+                    WHERE id=?
+                    """,
+                    (
+                        teacher_id,
+                        subject_id
+                    )
+                )
 
-            st.success(f"{teacher_name} assigned to {subject_name}")
+                conn.commit()
+
+                st.success(
+                    f"{teacher_name} assigned to {subject_name}"
+                )
+
+            except Exception as e:
+
+                st.error(f"Error: {e}")
+
+    # -----------------------------------
+    # CLOSE CONNECTION
+    # -----------------------------------
+
+    conn.close()
