@@ -158,84 +158,100 @@ def student_dashboard():
     for row in performance_data:
 
         st.markdown(
-            f"### 📘 {row['Subject']}"
+            f"## 📘 {row['Subject']}"
         )
 
-        risk = row["Risk"]
-
-        if risk == "High":
-
-            st.error(
-                "🔴 High Academic Risk"
-            )
-
-        elif risk == "Medium":
-
-            st.warning(
-                "🟠 Medium Academic Risk"
-            )
-
-        else:
-
-            st.success(
-                "🟢 Low Academic Risk"
-            )
+        col1, col2 = st.columns(2)
 
         # -----------------------------------
-        # SUGGESTIONS
+        # LEFT SIDE -> RISK
         # -----------------------------------
 
-        suggestions = []
+        with col1:
 
-        if row["Attendance"] < 70:
-
-            suggestions.append(
-                "Improve attendance"
+            st.markdown(
+                "### Risk Level"
             )
 
-        if row["Internal"] < 15:
+            risk = row["Risk"]
 
-            suggestions.append(
-                "Focus on internal preparation"
+            if risk == "High":
+
+                st.error(
+                    "🔴 High Academic Risk"
+                )
+
+            elif risk == "Medium":
+
+                st.warning(
+                    "🟠 Medium Academic Risk"
+                )
+
+            else:
+
+                st.success(
+                    "🟢 Low Academic Risk"
+                )
+
+        # -----------------------------------
+        # RIGHT SIDE -> SUGGESTIONS
+        # -----------------------------------
+
+        with col2:
+
+            st.markdown(
+                "### Suggestions"
             )
 
-        if row["Participation"] < 4:
+            suggestions = []
 
-            suggestions.append(
-                "Participate more in classroom activities"
-            )
+            if row["Attendance"] < 70:
 
-        if row["Assignment"] < 10:
+                suggestions.append(
+                    "Improve attendance"
+                )
 
-            suggestions.append(
-                "Submit assignments properly"
-            )
+            if row["Internal"] < 15:
 
-        if row["Quiz"] < 8:
+                suggestions.append(
+                    "Focus on internal preparation"
+                )
 
-            suggestions.append(
-                "Improve quiz performance"
-            )
+            if row["Participation"] < 4:
 
-        if row["Midsem"] < 18:
+                suggestions.append(
+                    "Participate more in classroom activities"
+                )
 
-            suggestions.append(
-                "Prepare better for mid-sem exams"
-            )
+            if row["Assignment"] < 10:
 
-        st.markdown("#### Suggestions")
+                suggestions.append(
+                    "Submit assignments properly"
+                )
 
-        if len(suggestions) == 0:
+            if row["Quiz"] < 8:
 
-            st.success(
-                "✅ No suggestions needed. Performance is good."
-            )
+                suggestions.append(
+                    "Improve quiz performance"
+                )
 
-        else:
+            if row["Midsem"] < 18:
 
-            for item in suggestions:
+                suggestions.append(
+                    "Prepare better for mid-sem exams"
+                )
 
-                st.write(f"• {item}")
+            if len(suggestions) == 0:
+
+                st.success(
+                    "✅ No suggestions needed."
+                )
+
+            else:
+
+                for item in suggestions:
+
+                    st.write(f"• {item}")
 
         st.markdown("---")
 
