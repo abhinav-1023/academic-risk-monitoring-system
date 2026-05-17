@@ -2,15 +2,18 @@ import streamlit as st
 
 from utils.database import supabase
 
-# -----------------------------------
-# ADMIN DASHBOARD
-# -----------------------------------
 
 def admin_dashboard():
 
-    st.header("Academic Coordinator Dashboard")
+    st.header("AI Academic Risk Monitoring System")
 
-    menu = st.sidebar.selectbox(
+    st.subheader("Academic Coordinator Dashboard")
+
+    # -----------------------------------
+    # SIDEBAR MENU
+    # -----------------------------------
+
+    menu = st.sidebar.radio(
 
         "Coordinator Menu",
 
@@ -22,317 +25,427 @@ def admin_dashboard():
 
             "Create Subject",
 
-            "Assign Teacher to Subject"
+            "Assign Teacher"
         ]
     )
 
-    # =================================================
+    # ===================================
     # CREATE TEACHER
-    # =================================================
+    # ===================================
 
     if menu == "Create Teacher":
 
-        st.subheader("Create Teacher")
-
-        username = st.text_input(
-            "Teacher Username"
+        st.markdown(
+            "## 👨‍🏫 Create Teacher"
         )
 
-        password = st.text_input(
-            "Password",
-            type="password"
-        )
+        col1, col2 = st.columns(2)
 
-        department = st.text_input(
-            "Department"
-        )
+        with col1:
 
-        if st.button("Create Teacher"):
+            username = st.text_input(
+                "Teacher Username"
+            )
 
-            try:
+            password = st.text_input(
+                "Password",
+                type="password"
+            )
 
-                # -----------------------------------
-                # INSERT USER
-                # -----------------------------------
+        with col2:
 
-                user_response = supabase.table(
-                    "users"
-                ).insert({
+            department = st.selectbox(
 
-                    "username": username,
+                "Department",
 
-                    "password": password,
+                [
 
-                    "role": "Teacher",
+                    "CSE",
 
-                    "department": department
+                    "ECE",
 
-                }).execute()
+                    "ME",
 
-                user_id = user_response.data[0]["id"]
+                    "CE",
 
-                # -----------------------------------
-                # INSERT TEACHER
-                # -----------------------------------
+                    "EE"
+                ]
+            )
 
-                supabase.table(
-                    "teachers"
-                ).insert({
+            email = st.text_input(
+                "Email"
+            )
 
-                    "user_id": user_id,
+        st.markdown("")
 
-                    "department": department
+        if st.button(
 
-                }).execute()
+            "➕ Create Teacher",
 
-                st.success(
-                    "Teacher created successfully"
-                )
+            use_container_width=True
+        ):
 
-            except Exception as e:
+            # -----------------------------------
+            # INSERT INTO USERS
+            # -----------------------------------
 
-                st.error(f"Error: {e}")
+            user_response = supabase.table(
+                "users"
+            ).insert({
 
-    # =================================================
+                "username":
+                    username,
+
+                "password":
+                    password,
+
+                "role":
+                    "Teacher"
+
+            }).execute()
+
+            user_id = user_response.data[0]["id"]
+
+            # -----------------------------------
+            # INSERT INTO TEACHERS
+            # -----------------------------------
+
+            supabase.table(
+                "teachers"
+            ).insert({
+
+                "user_id":
+                    user_id,
+
+                "teacher_name":
+                    username,
+
+                "department":
+                    department,
+
+                "email":
+                    email
+
+            }).execute()
+
+            st.success(
+                "Teacher Created Successfully"
+            )
+
+    # ===================================
     # CREATE STUDENT
-    # =================================================
+    # ===================================
 
     elif menu == "Create Student":
 
-        st.subheader("Create Student")
-
-        student_name = st.text_input(
-            "Student Full Name"
+        st.markdown(
+            "## 👨‍🎓 Create Student"
         )
 
-        username = st.text_input(
-            "Student Username"
-        )
+        col1, col2 = st.columns(2)
 
-        password = st.text_input(
-            "Password",
-            type="password"
-        )
+        with col1:
 
-        # ONLY 1st and 3rd semester
+            username = st.text_input(
+                "Student Username"
+            )
 
-        semester = st.selectbox(
+            password = st.text_input(
+                "Password",
+                type="password"
+            )
 
-            "Current Semester",
+        with col2:
 
-            [1, 3]
-        )
+            semester = st.selectbox(
 
-        if st.button("Create Student"):
+                "Semester",
 
-            try:
+                [1, 2, 3, 4, 5, 6, 7, 8]
+            )
 
-                # -----------------------------------
-                # INSERT USER
-                # -----------------------------------
+            department = st.selectbox(
 
-                user_response = supabase.table(
-                    "users"
-                ).insert({
+                "Department",
 
-                    "username": username,
+                [
 
-                    "password": password,
+                    "CSE",
 
-                    "role": "Student",
+                    "ECE",
 
-                    "department": "CSE"
+                    "ME",
 
-                }).execute()
+                    "CE",
 
-                user_id = user_response.data[0]["id"]
+                    "EE"
+                ]
+            )
 
-                # -----------------------------------
-                # INSERT STUDENT
-                # -----------------------------------
+        st.markdown("")
 
-                supabase.table(
-                    "students"
-                ).insert({
+        if st.button(
 
-                    "user_id": user_id,
+            "➕ Create Student",
 
-                    "student_name": student_name,
+            use_container_width=True
+        ):
 
-                    "semester": semester
+            # -----------------------------------
+            # INSERT USER
+            # -----------------------------------
 
-                }).execute()
+            user_response = supabase.table(
+                "users"
+            ).insert({
 
-                st.success(
+                "username":
+                    username,
 
-                    f"Student '{student_name}' created successfully"
-                )
+                "password":
+                    password,
 
-            except Exception as e:
+                "role":
+                    "Student"
 
-                st.error(f"Error: {e}")
+            }).execute()
 
-    # =================================================
+            user_id = user_response.data[0]["id"]
+
+            # -----------------------------------
+            # INSERT STUDENT
+            # -----------------------------------
+
+            supabase.table(
+                "students"
+            ).insert({
+
+                "user_id":
+                    user_id,
+
+                "student_name":
+                    username,
+
+                "semester":
+                    semester,
+
+                "department":
+                    department
+
+            }).execute()
+
+            st.success(
+                "Student Created Successfully"
+            )
+
+    # ===================================
     # CREATE SUBJECT
-    # =================================================
+    # ===================================
 
     elif menu == "Create Subject":
 
-        st.subheader("Create Subject")
-
-        subject_name = st.text_input(
-            "Subject Name"
+        st.markdown(
+            "## 📚 Create Subject"
         )
 
-        semester = st.selectbox(
+        col1, col2 = st.columns(2)
 
-            "Semester",
+        with col1:
 
-            [1, 3]
+            subject_name = st.text_input(
+                "Subject Name"
+            )
+
+        with col2:
+
+            semester = st.selectbox(
+
+                "Semester",
+
+                [1, 2, 3, 4, 5, 6, 7, 8]
+            )
+
+        st.markdown("")
+
+        if st.button(
+
+            "➕ Create Subject",
+
+            use_container_width=True
+        ):
+
+            supabase.table(
+                "subjects"
+            ).insert({
+
+                "subject_name":
+                    subject_name,
+
+                "semester":
+                    semester
+
+            }).execute()
+
+            st.success(
+                "Subject Created Successfully"
+            )
+
+    # ===================================
+    # ASSIGN TEACHER
+    # ===================================
+
+    elif menu == "Assign Teacher":
+
+        st.markdown(
+            "## 🔗 Assign Teacher To Subject"
         )
 
-        if st.button("Create Subject"):
-
-            try:
-
-                supabase.table(
-                    "subjects"
-                ).insert({
-
-                    "subject_name": subject_name,
-
-                    "semester": semester
-
-                }).execute()
-
-                st.success(
-                    "Subject created successfully"
-                )
-
-            except Exception as e:
-
-                st.error(f"Error: {e}")
-
-    # =================================================
-    # ASSIGN TEACHER TO SUBJECT
-    # =================================================
-
-    elif menu == "Assign Teacher to Subject":
-
-        st.subheader("Assign Teacher")
-
         # -----------------------------------
-        # FETCH SUBJECTS
+        # GET SUBJECTS
         # -----------------------------------
 
-        subjects_response = supabase.table(
+        subject_response = supabase.table(
             "subjects"
         ).select("*").execute()
 
-        subjects = subjects_response.data
-
-        if not subjects:
-
-            st.warning(
-                "No subjects available"
-            )
-
-            return
+        subjects = subject_response.data
 
         subject_dict = {
 
-            s["subject_name"]: s["id"]
+            s["subject_name"]:
+                s["id"]
 
             for s in subjects
         }
 
-        subject_name = st.selectbox(
-
-            "Select Subject",
-
-            list(subject_dict.keys())
-        )
-
-        subject_id = subject_dict[subject_name]
-
         # -----------------------------------
-        # FETCH TEACHERS
+        # GET TEACHERS
         # -----------------------------------
 
-        teachers_response = supabase.table(
+        teacher_response = supabase.table(
             "teachers"
         ).select("*").execute()
 
-        teachers = teachers_response.data
+        teachers = teacher_response.data
 
-        if not teachers:
+        teacher_dict = {
 
-            st.warning(
-                "No teachers available"
+            t["teacher_name"]:
+                t["id"]
+
+            for t in teachers
+        }
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            selected_subject = st.selectbox(
+
+                "Select Subject",
+
+                list(subject_dict.keys())
             )
 
-            return
+        with col2:
 
-        teacher_names = []
+            selected_teacher = st.selectbox(
 
-        teacher_map = {}
+                "Select Teacher",
 
-        for teacher in teachers:
+                list(teacher_dict.keys())
+            )
 
-            user_id = teacher["user_id"]
+        st.markdown("")
 
-            user_response = supabase.table(
-                "users"
-            ).select("*").eq(
+        if st.button(
+
+            "✅ Assign Teacher",
+
+            use_container_width=True
+        ):
+
+            supabase.table(
+                "subjects"
+            ).update({
+
+                "teacher_id":
+                    teacher_dict[
+                        selected_teacher
+                    ]
+
+            }).eq(
+
                 "id",
-                user_id
+
+                subject_dict[
+                    selected_subject
+                ]
+
             ).execute()
 
-            user_data = user_response.data
+            st.success(
 
-            if user_data:
+                f"{selected_teacher} assigned to {selected_subject}"
+            )
 
-                username = user_data[0]["username"]
+    # ===================================
+    # DASHBOARD SUMMARY
+    # ===================================
 
-                teacher_names.append(username)
+    st.markdown("---")
 
-                teacher_map[username] = teacher["id"]
+    st.subheader("System Overview")
 
-        teacher_name = st.selectbox(
+    col1, col2, col3 = st.columns(3)
 
-            "Select Teacher",
+    # -----------------------------------
+    # TOTAL STUDENTS
+    # -----------------------------------
 
-            teacher_names
+    students = supabase.table(
+        "students"
+    ).select("*").execute()
+
+    with col1:
+
+        st.metric(
+
+            "Students",
+
+            len(students.data)
         )
 
-        teacher_id = teacher_map[teacher_name]
+    # -----------------------------------
+    # TOTAL TEACHERS
+    # -----------------------------------
 
-        # -----------------------------------
-        # ASSIGN BUTTON
-        # -----------------------------------
+    teachers = supabase.table(
+        "teachers"
+    ).select("*").execute()
 
-        if st.button("Assign Teacher"):
+    with col2:
 
-            try:
+        st.metric(
 
-                supabase.table(
-                    "subjects"
-                ).update({
+            "Teachers",
 
-                    "teacher_id": teacher_id
+            len(teachers.data)
+        )
 
-                }).eq(
+    # -----------------------------------
+    # TOTAL SUBJECTS
+    # -----------------------------------
 
-                    "id",
-                    subject_id
+    subjects = supabase.table(
+        "subjects"
+    ).select("*").execute()
 
-                ).execute()
+    with col3:
 
-                st.success(
+        st.metric(
 
-                    f"{teacher_name} assigned to {subject_name}"
-                )
+            "Subjects",
 
-            except Exception as e:
-
-                st.error(f"Error: {e}")
+            len(subjects.data)
+        )
