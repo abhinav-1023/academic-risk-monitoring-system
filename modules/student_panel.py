@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 
 from utils.database import supabase
-
 from modules.prediction import predict_risk
 
 # -----------------------------------
@@ -95,7 +94,7 @@ def student_dashboard():
         return
 
     # -----------------------------------
-    # PERFORMANCE TABLE
+    # PERFORMANCE DATA
     # -----------------------------------
 
     performance_data = []
@@ -104,7 +103,9 @@ def student_dashboard():
 
         subject_id = mark["subject_id"]
 
+        # -----------------------------------
         # GET SUBJECT NAME
+        # -----------------------------------
 
         subject_response = supabase.table(
             "subjects"
@@ -132,6 +133,10 @@ def student_dashboard():
         quiz = mark["quiz_score"]
 
         midsem = mark["midsem_marks"]
+
+        # -----------------------------------
+        # PREDICT RISK
+        # -----------------------------------
 
         risk = predict_risk(
 
@@ -257,17 +262,55 @@ def student_dashboard():
         st.write("---")
 
     # -----------------------------------
-    # VISUALIZATION
+    # PERFORMANCE VISUALIZATION
     # -----------------------------------
 
     st.subheader("Performance Visualization")
 
-    chart_df = df[[
-        "Attendance",
-        "Internal",
-        "Assignment",
-        "Quiz",
-        "Midsem"
-    ]]
+    for row in performance_data:
 
-    st.bar_chart(chart_df)
+        st.markdown(
+            f"### {row['Subject']}"
+        )
+
+        # Attendance
+
+        st.write("Attendance")
+
+        st.progress(
+            int(row["Attendance"])
+        )
+
+        # Internal Marks
+
+        st.write("Internal Marks")
+
+        st.progress(
+            min(int(row["Internal"] * 4), 100)
+        )
+
+        # Assignment Score
+
+        st.write("Assignment Score")
+
+        st.progress(
+            min(int(row["Assignment"] * 4), 100)
+        )
+
+        # Quiz Score
+
+        st.write("Quiz Score")
+
+        st.progress(
+            min(int(row["Quiz"] * 5), 100)
+        )
+
+        # Midsem Marks
+
+        st.write("Midsem Marks")
+
+        st.progress(
+            min(int(row["Midsem"] * 2.5), 100)
+        )
+
+        st.write("---")
