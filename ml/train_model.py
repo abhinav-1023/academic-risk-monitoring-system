@@ -5,80 +5,154 @@ import joblib
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
 
 # -----------------------------------
 # CREATE REQUIRED FOLDERS
 # -----------------------------------
 
 os.makedirs("data", exist_ok=True)
+
 os.makedirs("models", exist_ok=True)
 
 # -----------------------------------
-# GENERATE SYNTHETIC DATASET
+# RANDOM SEED
 # -----------------------------------
 
 np.random.seed(42)
 
+# -----------------------------------
+# NUMBER OF SAMPLES
+# -----------------------------------
+
 n_samples = 3000
 
-attendance = np.random.randint(40, 100, n_samples)
+# -----------------------------------
+# GENERATE SYNTHETIC FEATURES
+# -----------------------------------
 
-internal = np.random.randint(5, 25, n_samples)
+attendance = np.random.randint(
+    40,
+    100,
+    n_samples
+)
 
-participation = np.random.randint(1, 10, n_samples)
+internal = np.random.randint(
+    5,
+    25,
+    n_samples
+)
 
-assignment = np.random.randint(0, 25, n_samples)
+# Participation correlated with attendance
 
-quiz = np.random.randint(0, 20, n_samples)
+participation = np.where(
 
-midsem = np.random.randint(0, 40, n_samples)
+    attendance > 75,
 
-risk = []
+    np.random.randint(5, 10, n_samples),
+
+    np.random.randint(1, 6, n_samples)
+)
+
+# Assignment correlated with internal
+
+assignment = internal + np.random.randint(
+    -5,
+    5,
+    n_samples
+)
+
+assignment = np.clip(
+    assignment,
+    0,
+    25
+)
+
+# Quiz correlated with internal
+
+quiz = internal + np.random.randint(
+    -8,
+    5,
+    n_samples
+)
+
+quiz = np.clip(
+    quiz,
+    0,
+    20
+)
+
+# Midsem correlated with internal
+
+midsem = internal * 1.5 + np.random.randint(
+    -10,
+    10,
+    n_samples
+)
+
+midsem = np.clip(
+    midsem,
+    0,
+    40
+)
 
 # -----------------------------------
 # GENERATE RISK LABELS
 # -----------------------------------
+
+risk = []
 
 for i in range(n_samples):
 
     score = 0
 
     # Attendance
+
     if attendance[i] < 60:
         score += 2
 
-    # Internal marks
+    # Internal Marks
+
     if internal[i] < 12:
         score += 2
 
     # Participation
+
     if participation[i] < 4:
         score += 1
 
     # Assignment
+
     if assignment[i] < 10:
         score += 2
 
     # Quiz
+
     if quiz[i] < 8:
         score += 1
 
-    # Mid-sem
+    # Midsem
+
     if midsem[i] < 18:
         score += 2
 
-    # Small controlled randomness
-    score += np.random.randint(0, 2)
+    # More randomness for realistic accuracy
 
-    # Final risk category
+    score += np.random.randint(-1, 3)
+
+    # Final Risk Category
+
     if score >= 7:
+
         risk.append("High")
 
     elif score >= 4:
+
         risk.append("Medium")
 
     else:
+
         risk.append("Low")
 
 # -----------------------------------
@@ -86,12 +160,19 @@ for i in range(n_samples):
 # -----------------------------------
 
 df = pd.DataFrame({
+
     "attendance": attendance,
+
     "internal": internal,
+
     "participation": participation,
+
     "assignment": assignment,
+
     "quiz": quiz,
+
     "midsem": midsem,
+
     "risk": risk
 })
 
@@ -101,9 +182,13 @@ df = pd.DataFrame({
 
 dataset_path = "data/synthetic_student_data.csv"
 
-df.to_csv(dataset_path, index=False)
+df.to_csv(
+    dataset_path,
+    index=False
+)
 
 print("Dataset saved successfully")
+
 print("Dataset Path:", dataset_path)
 
 # -----------------------------------
@@ -122,9 +207,12 @@ X = df[[
 y = df["risk"]
 
 X_train, X_test, y_train, y_test = train_test_split(
+
     X,
     y,
+
     test_size=0.25,
+
     random_state=42
 )
 
@@ -133,32 +221,59 @@ X_train, X_test, y_train, y_test = train_test_split(
 # -----------------------------------
 
 model = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=12,
-    min_samples_split=2,
-    min_samples_leaf=1,
+
+    n_estimators=120,
+
+    max_depth=6,
+
+    min_samples_split=5,
+
+    min_samples_leaf=3,
+
     random_state=42
 )
 
-model.fit(X_train, y_train)
+# -----------------------------------
+# TRAIN MODEL
+# -----------------------------------
+
+model.fit(
+    X_train,
+    y_train
+)
 
 # -----------------------------------
-# TEST MODEL
+# PREDICTION
 # -----------------------------------
 
 y_pred = model.predict(X_test)
 
-accuracy = accuracy_score(y_test, y_pred)
+# -----------------------------------
+# ACCURACY
+# -----------------------------------
 
-print("Model Accuracy:", round(accuracy * 100, 2), "%")
+accuracy = accuracy_score(
+    y_test,
+    y_pred
+)
+
+print(
+    "Model Accuracy:",
+    round(accuracy * 100, 2),
+    "%"
+)
 
 # -----------------------------------
 # CONFUSION MATRIX
 # -----------------------------------
 
-cm = confusion_matrix(y_test, y_pred)
+cm = confusion_matrix(
+    y_test,
+    y_pred
+)
 
 print("Confusion Matrix:")
+
 print(cm)
 
 # -----------------------------------
@@ -167,7 +282,11 @@ print(cm)
 
 model_path = "models/risk_model.pkl"
 
-joblib.dump(model, model_path)
+joblib.dump(
+    model,
+    model_path
+)
 
 print("Model saved successfully")
+
 print("Model Path:", model_path)

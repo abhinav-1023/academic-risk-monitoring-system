@@ -1,40 +1,35 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
-import matplotlib.pyplot as plt
-import os
 
+from utils.database import supabase
 from modules.prediction import predict_risk
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(BASE_DIR, "..", "database", "college_system.db")
-
-
-def get_connection():
-    return sqlite3.connect(db_path)
 
 
 def teacher_dashboard():
 
     st.header("Teacher Dashboard")
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
     
     # GET SUBJECTS
     
 
-    cursor.execute("SELECT id, subject_name, semester FROM subjects")
-    subjects = cursor.fetchall()
+    response = supabase.table("subjects").select("*").execute()
+
+    subjects = response.data
 
     if not subjects:
         st.warning("No subjects found")
         return
 
-    subject_dict = {s[1]: (s[0], s[2]) for s in subjects}
+    subject_dict = {
+        s["subject_name"]: (s["id"], s["semester"])
+        for s in subjects
+    }
 
-    subject_name = st.selectbox("Select Subject", list(subject_dict.keys()))
+    subject_name = st.selectbox(
+        "Select Subject",
+        list(subject_dict.keys())
+    )
 
     subject_id, semester = subject_dict[subject_name]
 
@@ -44,34 +39,47 @@ def teacher_dashboard():
     # GET STUDENTS
     
 
-    cursor.execute("""
-    SELECT students.id, users.username, students.previous_gpa
-    FROM students
-    JOIN users ON students.user_id = users.id
-    WHERE students.semester=?
-    """, (semester,))
+    response = supabase.table("students").select("*").eq(
+        "semester",
+        semester
+    ).execute()
 
-    students = cursor.fetchall()
+    students = response.data
 
     if not students:
-        st.warning("No students found for this semester")
+        st.warning("No students found")
         return
 
-    student_names = [s[1] for s in students]
+    student_names = [
+        s["student_name"]
+        for s in students
+    ]
 
     
-    # MARK ENTRY TABLE
+    # DATA ENTRY TABLE
     
 
     df = pd.DataFrame({
+
         "Student": student_names,
+
         "Attendance": [75] * len(student_names),
+
         "Internal": [15] * len(student_names),
+
         "Participation": [5] * len(student_names),
-        "Absences": [0] * len(student_names)
+
+        "Assignment": [15] * len(student_names),
+
+        "Quiz": [10] * len(student_names),
+
+        "Midsem": [20] * len(student_names)
     })
 
-    edited_df = st.data_editor(df)
+    edited_df = st.data_editor(
+        df,
+        use_container_width=True
+    )
 
     
     # SAVE MARKS
@@ -81,134 +89,138 @@ def teacher_dashboard():
 
         for i, row in edited_df.iterrows():
 
-            student_id = students[i][0]
+            student_id = students[i]["id"]
 
             attendance = row["Attendance"]
-            internal = row["Internal"]
-            participation = row["Participation"]
-            absences = row["Absences"]
 
-            cursor.execute("""
-            INSERT INTO marks
-            (student_id, subject_id, attendance, internal_marks, participation, absences)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                student_id,
-                subject_id,
+            internal = row["Internal"]
+
+            participation = row["Participation"]
+
+            assignment = row["Assignment"]
+
+            quiz = row["Quiz"]
+
+            midsem = row["Midsem"]
+
+            
+            # PREDICT RISK
+            
+
+            risk = predict_risk(
                 attendance,
                 internal,
                 participation,
-                absences
-            ))
+                assignment,
+                quiz,
+                midsem
+            )
 
-        conn.commit()
+            
+            # SAVE TO SUPABASE
+            
 
-        st.success("Marks saved successfully")
+            supabase.table("marks").insert({
+
+                "student_id": student_id,
+
+                "subject_id": subject_id,
+
+                "attendance": attendance,
+
+                "internal_marks": internal,
+
+                "participation": participation,
+
+                "assignment_score": assignment,
+
+                "quiz_score": quiz,
+
+                "midsem_marks": midsem,
+
+                "risk_level": risk
+
+            }).execute()
+
+        st.success("Marks Saved Successfully")
 
     
-    # GENERATE RISK REPORT
+    # GENERATE REPORT
     
 
     if st.button("Generate Risk Report"):
 
-        st.subheader("Risk Prediction")
+        st.subheader("Student Risk Report")
 
-        low_count = 0
-        medium_count = 0
-        high_count = 0
+        marks_response = supabase.table(
+            "marks"
+        ).select("*").eq(
+            "subject_id",
+            subject_id
+        ).execute()
 
-        marks_list = []
+        marks_data = marks_response.data
 
-        for student_id, student_name, gpa in students:
+        if not marks_data:
+            st.warning("No data found")
+            return
 
-            cursor.execute("""
-            SELECT attendance, internal_marks, participation, absences
-            FROM marks
-            WHERE student_id=? AND subject_id=?
-            ORDER BY id DESC LIMIT 1
-            """, (student_id, subject_id))
+        chart_students = []
+        chart_marks = []
 
-            data = cursor.fetchone()
+        for data in marks_data:
 
-            if data:
+            student_id = data["student_id"]
 
-                attendance, internal, participation, absences = data
+            student_name = ""
 
-                risk = predict_risk(
-                    attendance,
-                    internal,
-                    participation,
-                    absences,
-                    gpa
+            for s in students:
+
+                if s["id"] == student_id:
+                    student_name = s["student_name"]
+
+            risk = data["risk_level"]
+
+            if risk == "High":
+
+                st.error(
+                    f"{student_name} → HIGH RISK"
                 )
 
-                
-                # DISPLAY RISK
-                
+            elif risk == "Medium":
 
-                if risk == "High":
-                    st.error(f"{student_name} → {risk} Risk")
-                    high_count += 1
+                st.warning(
+                    f"{student_name} → MEDIUM RISK"
+                )
 
-                elif risk == "Medium":
-                    st.warning(f"{student_name} → {risk} Risk")
-                    medium_count += 1
+            else:
 
-                else:
-                    st.success(f"{student_name} → {risk} Risk")
-                    low_count += 1
+                st.success(
+                    f"{student_name} → LOW RISK"
+                )
 
-                
-                # SAVE MARKS FOR BAR GRAPH
-                
+            chart_students.append(student_name)
 
-                marks_list.append(internal)
+            chart_marks.append(
+                data["internal_marks"]
+            )
 
-                
-                # SAVE DATA TO DATASET
-                
-
-                new_row = pd.DataFrame([{
-                    "attendance": attendance,
-                    "internal": internal,
-                    "participation": participation,
-                    "absences": absences,
-                    "gpa": gpa,
-                    "risk": risk
-                }])
-
-                dataset_path = "data/student_performance_dataset.csv"
-
-                if os.path.exists(dataset_path):
-                    new_row.to_csv(
-                        dataset_path,
-                        mode="a",
-                        header=False,
-                        index=False
-                    )
-                else:
-                    new_row.to_csv(dataset_path, index=False)
-
-        
-        # ANALYTICS DASHBOARD
-        
-
-        st.subheader("Analytics Dashboard")
-
-        
         
         # BAR CHART
         
 
-        if len(student_names) > 0 and len(marks_list) > 0:
+        chart_df = pd.DataFrame({
 
-            chart_data = pd.DataFrame({
-                'Students': student_names[:len(marks_list)],
-                'Marks': marks_list
-            })
+            "Students": chart_students,
 
-            st.subheader("Student Performance Comparison")
+            "Marks": chart_marks
 
-            st.bar_chart(chart_data.set_index('Students'))
+        })
 
-    conn.close()
+        st.subheader(
+            "Student Performance Comparison"
+        )
+
+        st.bar_chart(
+            chart_df.set_index("Students")
+        )

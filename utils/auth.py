@@ -1,24 +1,48 @@
-import sqlite3
-import os
+from utils.database import supabase
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(BASE_DIR, "..", "database", "college_system.db")
+# -----------------------------------
+# AUTHENTICATION FUNCTION
+# -----------------------------------
 
+def authenticate(
 
-def authenticate(username, password):
+    username,
 
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+    password
+):
 
-    cursor.execute("""
-        SELECT role FROM users
-        WHERE username=? AND password=?
-    """, (username, password))
+    try:
 
-    result = cursor.fetchone()
-    conn.close()
+        # -----------------------------------
+        # FETCH USER
+        # -----------------------------------
 
-    if result:
-        return result[0]
-    else:
+        response = supabase.table(
+            "users"
+        ).select("*").eq(
+            "username",
+            username
+        ).eq(
+            "password",
+            password
+        ).execute()
+
+        users = response.data
+
+        # -----------------------------------
+        # CHECK USER
+        # -----------------------------------
+
+        if users:
+
+            return users[0]["role"]
+
+        else:
+
+            return None
+
+    except Exception as e:
+
+        print("Authentication Error:", e)
+
         return None

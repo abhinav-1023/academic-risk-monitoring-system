@@ -1,16 +1,13 @@
 import streamlit as st
-import sqlite3
-import os
+import pandas as pd
+
+from utils.database import supabase
 
 from modules.prediction import predict_risk
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(BASE_DIR, "..", "database", "college_system.db")
-
-
-def get_connection():
-    return sqlite3.connect(db_path)
-
+# -----------------------------------
+# STUDENT DASHBOARD
+# -----------------------------------
 
 def student_dashboard():
 
@@ -18,97 +15,259 @@ def student_dashboard():
 
     username = st.session_state.username
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    # -----------------------------------
+    # GET USER
+    # -----------------------------------
 
-    
-    # GET STUDENT INFORMATION
-    
+    user_response = supabase.table(
+        "users"
+    ).select("*").eq(
+        "username",
+        username
+    ).execute()
 
-    cursor.execute("""
-    SELECT students.id, students.previous_gpa
-    FROM students
-    JOIN users ON students.user_id = users.id
-    WHERE users.username=?
-    """, (username,))
+    user_data = user_response.data
 
-    student = cursor.fetchone()
+    if not user_data:
 
-    if not student:
+        st.warning("User not found")
+
+        return
+
+    user_id = user_data[0]["id"]
+
+    # -----------------------------------
+    # GET STUDENT
+    # -----------------------------------
+
+    student_response = supabase.table(
+        "students"
+    ).select("*").eq(
+        "user_id",
+        user_id
+    ).execute()
+
+    student_data = student_response.data
+
+    if not student_data:
+
         st.warning("Student record not found")
+
         return
 
-    student_id, gpa = student
+    student = student_data[0]
 
-    
-    # GET MARKS
-    
+    student_id = student["id"]
 
-    cursor.execute("""
-    SELECT subjects.subject_name,
-           marks.attendance,
-           marks.internal_marks,
-           marks.participation,
-           marks.absences
-    FROM marks
-    JOIN subjects ON marks.subject_id = subjects.id
-    WHERE marks.student_id=?
-    """, (student_id,))
+    student_name = student["student_name"]
 
-    records = cursor.fetchall()
+    semester = student["semester"]
 
-    if not records:
+    # -----------------------------------
+    # STUDENT DETAILS
+    # -----------------------------------
+
+    st.subheader("Student Information")
+
+    st.write("Name:", student_name)
+
+    st.write("Semester:", semester)
+
+    st.write("---")
+
+    # -----------------------------------
+    # FETCH MARKS
+    # -----------------------------------
+
+    marks_response = supabase.table(
+        "marks"
+    ).select("*").eq(
+        "student_id",
+        student_id
+    ).execute()
+
+    marks_data = marks_response.data
+
+    if not marks_data:
+
         st.info("No marks available yet")
+
         return
 
-    
-    # DISPLAY SUBJECT PERFORMANCE
-    
+    # -----------------------------------
+    # PERFORMANCE TABLE
+    # -----------------------------------
 
-    for subject_name, attendance, internal, participation, absences in records:
+    performance_data = []
 
-        st.subheader(subject_name)
+    for mark in marks_data:
 
-        st.write("Attendance:", attendance, "%")
-        st.write("Internal Marks:", internal)
-        st.write("Participation:", participation)
-        st.write("Absences:", absences)
+        subject_id = mark["subject_id"]
 
-        # Predict risk
+        # GET SUBJECT NAME
+
+        subject_response = supabase.table(
+            "subjects"
+        ).select("*").eq(
+            "id",
+            subject_id
+        ).execute()
+
+        subject_data = subject_response.data
+
+        subject_name = "Unknown"
+
+        if subject_data:
+
+            subject_name = subject_data[0]["subject_name"]
+
+        attendance = mark["attendance"]
+
+        internal = mark["internal_marks"]
+
+        participation = mark["participation"]
+
+        assignment = mark["assignment_score"]
+
+        quiz = mark["quiz_score"]
+
+        midsem = mark["midsem_marks"]
+
         risk = predict_risk(
+
             attendance,
+
             internal,
+
             participation,
-            absences,
-            gpa
+
+            assignment,
+
+            quiz,
+
+            midsem
         )
 
-        # Show risk level
+        performance_data.append({
+
+            "Subject": subject_name,
+
+            "Attendance": attendance,
+
+            "Internal": internal,
+
+            "Participation": participation,
+
+            "Assignment": assignment,
+
+            "Quiz": quiz,
+
+            "Midsem": midsem,
+
+            "Risk": risk
+        })
+
+    # -----------------------------------
+    # DISPLAY TABLE
+    # -----------------------------------
+
+    df = pd.DataFrame(performance_data)
+
+    st.subheader("Academic Performance")
+
+    st.dataframe(
+        df,
+        use_container_width=True
+    )
+
+    # -----------------------------------
+    # RISK ANALYSIS
+    # -----------------------------------
+
+    st.subheader("Risk Analysis")
+
+    for row in performance_data:
+
+        subject = row["Subject"]
+
+        risk = row["Risk"]
+
+        st.write(f"Subject: {subject}")
+
         if risk == "High":
-            st.error("Risk Level: High Risk")
+
+            st.error(
+                "High Academic Risk"
+            )
 
         elif risk == "Medium":
-            st.warning("Risk Level: Medium Risk")
+
+            st.warning(
+                "Medium Academic Risk"
+            )
 
         else:
-            st.success("Risk Level: Low Risk")
 
-        
-        # Suggestions
-        
+            st.success(
+                "Low Academic Risk"
+            )
+
+        # -----------------------------------
+        # SUGGESTIONS
+        # -----------------------------------
 
         st.write("Suggestions:")
 
-        if attendance < 70:
-            st.write("- Improve class attendance")
+        if row["Attendance"] < 70:
 
-        if internal < 15:
-            st.write("- Work harder for internal assessments")
+            st.write(
+                "- Improve attendance"
+            )
 
-        if participation < 4:
-            st.write("- Participate more in class")
+        if row["Internal"] < 15:
 
-        if absences > 5:
-            st.write("- Reduce number of absences")
+            st.write(
+                "- Focus on internal preparation"
+            )
+
+        if row["Participation"] < 4:
+
+            st.write(
+                "- Participate more in classroom activities"
+            )
+
+        if row["Assignment"] < 12:
+
+            st.write(
+                "- Submit assignments properly"
+            )
+
+        if row["Quiz"] < 10:
+
+            st.write(
+                "- Improve quiz performance"
+            )
+
+        if row["Midsem"] < 20:
+
+            st.write(
+                "- Prepare better for mid-sem exams"
+            )
 
         st.write("---")
+
+    # -----------------------------------
+    # VISUALIZATION
+    # -----------------------------------
+
+    st.subheader("Performance Visualization")
+
+    chart_df = df[[
+        "Attendance",
+        "Internal",
+        "Assignment",
+        "Quiz",
+        "Midsem"
+    ]]
+
+    st.bar_chart(chart_df)

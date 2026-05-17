@@ -1,26 +1,6 @@
 import streamlit as st
-import sqlite3
-import os
 
-# -----------------------------------
-# DATABASE PATH
-# -----------------------------------
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-db_path = os.path.join(
-    BASE_DIR,
-    "..",
-    "database",
-    "college_system.db"
-)
-
-# -----------------------------------
-# DATABASE CONNECTION
-# -----------------------------------
-
-def get_connection():
-    return sqlite3.connect(db_path)
+from utils.database import supabase
 
 # -----------------------------------
 # ADMIN DASHBOARD
@@ -31,17 +11,20 @@ def admin_dashboard():
     st.header("Academic Coordinator Dashboard")
 
     menu = st.sidebar.selectbox(
+
         "Coordinator Menu",
+
         [
+
             "Create Teacher",
+
             "Create Student",
+
             "Create Subject",
+
             "Assign Teacher to Subject"
         ]
     )
-
-    conn = get_connection()
-    cursor = conn.cursor()
 
     # =================================================
     # CREATE TEACHER
@@ -51,47 +34,56 @@ def admin_dashboard():
 
         st.subheader("Create Teacher")
 
-        username = st.text_input("Teacher Username")
+        username = st.text_input(
+            "Teacher Username"
+        )
 
         password = st.text_input(
             "Password",
             type="password"
         )
 
-        department = st.text_input("Department")
+        department = st.text_input(
+            "Department"
+        )
 
         if st.button("Create Teacher"):
 
             try:
 
-                cursor.execute(
-                    """
-                    INSERT INTO users
-                    (username, password, role, department)
-                    VALUES (?, ?, 'Teacher', ?)
-                    """,
-                    (
-                        username,
-                        password,
-                        department
-                    )
-                )
+                # -----------------------------------
+                # INSERT USER
+                # -----------------------------------
 
-                user_id = cursor.lastrowid
+                user_response = supabase.table(
+                    "users"
+                ).insert({
 
-                cursor.execute(
-                    """
-                    INSERT INTO teachers
-                    (user_id, department)
-                    VALUES (?, ?)
-                    """,
-                    (
-                        user_id,
-                        department
-                    )
-                )
+                    "username": username,
 
-                conn.commit()
+                    "password": password,
+
+                    "role": "Teacher",
+
+                    "department": department
+
+                }).execute()
+
+                user_id = user_response.data[0]["id"]
+
+                # -----------------------------------
+                # INSERT TEACHER
+                # -----------------------------------
+
+                supabase.table(
+                    "teachers"
+                ).insert({
+
+                    "user_id": user_id,
+
+                    "department": department
+
+                }).execute()
 
                 st.success(
                     "Teacher created successfully"
@@ -122,47 +114,57 @@ def admin_dashboard():
             type="password"
         )
 
+        # ONLY 1st and 3rd semester
+
         semester = st.selectbox(
+
             "Current Semester",
-            [1, 2, 3, 4, 5, 6, 7, 8]
+
+            [1, 3]
         )
 
         if st.button("Create Student"):
 
             try:
 
-                # Insert into users table
-                cursor.execute(
-                    """
-                    INSERT INTO users
-                    (username, password, role, department)
-                    VALUES (?, ?, 'Student', 'CSE')
-                    """,
-                    (
-                        username,
-                        password
-                    )
-                )
+                # -----------------------------------
+                # INSERT USER
+                # -----------------------------------
 
-                user_id = cursor.lastrowid
+                user_response = supabase.table(
+                    "users"
+                ).insert({
 
-                # Insert into students table
-                cursor.execute(
-                    """
-                    INSERT INTO students
-                    (user_id, student_name, semester)
-                    VALUES (?, ?, ?)
-                    """,
-                    (
-                        user_id,
-                        student_name,
-                        semester
-                    )
-                )
+                    "username": username,
 
-                conn.commit()
+                    "password": password,
+
+                    "role": "Student",
+
+                    "department": "CSE"
+
+                }).execute()
+
+                user_id = user_response.data[0]["id"]
+
+                # -----------------------------------
+                # INSERT STUDENT
+                # -----------------------------------
+
+                supabase.table(
+                    "students"
+                ).insert({
+
+                    "user_id": user_id,
+
+                    "student_name": student_name,
+
+                    "semester": semester
+
+                }).execute()
 
                 st.success(
+
                     f"Student '{student_name}' created successfully"
                 )
 
@@ -183,27 +185,25 @@ def admin_dashboard():
         )
 
         semester = st.selectbox(
+
             "Semester",
-            [1, 2, 3, 4, 5, 6, 7, 8]
+
+            [1, 3]
         )
 
         if st.button("Create Subject"):
 
             try:
 
-                cursor.execute(
-                    """
-                    INSERT INTO subjects
-                    (subject_name, semester)
-                    VALUES (?, ?)
-                    """,
-                    (
-                        subject_name,
-                        semester
-                    )
-                )
+                supabase.table(
+                    "subjects"
+                ).insert({
 
-                conn.commit()
+                    "subject_name": subject_name,
+
+                    "semester": semester
+
+                }).execute()
 
                 st.success(
                     "Subject created successfully"
@@ -225,14 +225,11 @@ def admin_dashboard():
         # FETCH SUBJECTS
         # -----------------------------------
 
-        cursor.execute(
-            """
-            SELECT id, subject_name
-            FROM subjects
-            """
-        )
+        subjects_response = supabase.table(
+            "subjects"
+        ).select("*").execute()
 
-        subjects = cursor.fetchall()
+        subjects = subjects_response.data
 
         if not subjects:
 
@@ -243,12 +240,16 @@ def admin_dashboard():
             return
 
         subject_dict = {
-            name: sid
-            for sid, name in subjects
+
+            s["subject_name"]: s["id"]
+
+            for s in subjects
         }
 
         subject_name = st.selectbox(
+
             "Select Subject",
+
             list(subject_dict.keys())
         )
 
@@ -258,16 +259,11 @@ def admin_dashboard():
         # FETCH TEACHERS
         # -----------------------------------
 
-        cursor.execute(
-            """
-            SELECT teachers.id, users.username
-            FROM teachers
-            JOIN users
-            ON teachers.user_id = users.id
-            """
-        )
+        teachers_response = supabase.table(
+            "teachers"
+        ).select("*").execute()
 
-        teachers = cursor.fetchall()
+        teachers = teachers_response.data
 
         if not teachers:
 
@@ -277,17 +273,39 @@ def admin_dashboard():
 
             return
 
-        teacher_dict = {
-            name: tid
-            for tid, name in teachers
-        }
+        teacher_names = []
+
+        teacher_map = {}
+
+        for teacher in teachers:
+
+            user_id = teacher["user_id"]
+
+            user_response = supabase.table(
+                "users"
+            ).select("*").eq(
+                "id",
+                user_id
+            ).execute()
+
+            user_data = user_response.data
+
+            if user_data:
+
+                username = user_data[0]["username"]
+
+                teacher_names.append(username)
+
+                teacher_map[username] = teacher["id"]
 
         teacher_name = st.selectbox(
+
             "Select Teacher",
-            list(teacher_dict.keys())
+
+            teacher_names
         )
 
-        teacher_id = teacher_dict[teacher_name]
+        teacher_id = teacher_map[teacher_name]
 
         # -----------------------------------
         # ASSIGN BUTTON
@@ -297,30 +315,24 @@ def admin_dashboard():
 
             try:
 
-                cursor.execute(
-                    """
-                    UPDATE subjects
-                    SET teacher_id=?
-                    WHERE id=?
-                    """,
-                    (
-                        teacher_id,
-                        subject_id
-                    )
-                )
+                supabase.table(
+                    "subjects"
+                ).update({
 
-                conn.commit()
+                    "teacher_id": teacher_id
+
+                }).eq(
+
+                    "id",
+                    subject_id
+
+                ).execute()
 
                 st.success(
+
                     f"{teacher_name} assigned to {subject_name}"
                 )
 
             except Exception as e:
 
                 st.error(f"Error: {e}")
-
-    # -----------------------------------
-    # CLOSE CONNECTION
-    # -----------------------------------
-
-    conn.close()

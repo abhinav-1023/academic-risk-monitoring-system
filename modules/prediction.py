@@ -8,23 +8,34 @@ print("NEW PREDICTION FILE LOADED")
 # BASE DIRECTORY
 # -----------------------------------
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
 # -----------------------------------
 # MODEL PATH
 # -----------------------------------
 
 MODEL_PATH = os.path.abspath(
+
     os.path.join(
+
         BASE_DIR,
+
         "..",
+
         "models",
+
         "risk_model.pkl"
     )
 )
 
 print("MODEL PATH:", MODEL_PATH)
-print("MODEL EXISTS:", os.path.exists(MODEL_PATH))
+
+print(
+    "MODEL EXISTS:",
+    os.path.exists(MODEL_PATH)
+)
 
 # -----------------------------------
 # LOAD MODEL
@@ -38,7 +49,9 @@ try:
 
         model = joblib.load(MODEL_PATH)
 
-        print("MODEL LOADED SUCCESSFULLY")
+        print(
+            "MODEL LOADED SUCCESSFULLY"
+        )
 
     else:
 
@@ -46,39 +59,63 @@ try:
 
 except Exception as e:
 
-    print("MODEL LOADING ERROR:", e)
+    print(
+        "MODEL LOADING ERROR:",
+        e
+    )
 
 # -----------------------------------
 # PREDICTION FUNCTION
 # -----------------------------------
 
 def predict_risk(
+
     attendance,
+
     internal,
+
     participation,
+
     assignment,
+
     quiz,
+
     midsem
 ):
 
     if model is None:
+
         return "Model not loaded"
 
     try:
 
-        # Convert input into NumPy array
+        # -----------------------------------
+        # CREATE INPUT ARRAY
+        # -----------------------------------
+
         data = np.array([
+
             [
+
                 attendance,
+
                 internal,
+
                 participation,
+
                 assignment,
+
                 quiz,
+
                 midsem
             ]
+
         ])
 
-        # Predict risk
+        # -----------------------------------
+        # PREDICT
+        # -----------------------------------
+
         prediction = model.predict(data)
 
         return prediction[0]
