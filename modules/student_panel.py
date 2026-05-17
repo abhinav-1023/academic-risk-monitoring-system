@@ -10,7 +10,7 @@ from modules.prediction import predict_risk
 
 def student_dashboard():
 
-    st.header("Student Dashboard")
+    st.title("Student Performance Dashboard")
 
     username = st.session_state.username
 
@@ -63,14 +63,24 @@ def student_dashboard():
     semester = student["semester"]
 
     # -----------------------------------
-    # STUDENT DETAILS
+    # STUDENT INFORMATION
     # -----------------------------------
 
     st.subheader("Student Information")
 
-    st.write("Name:", student_name)
+    col1, col2 = st.columns(2)
 
-    st.write("Semester:", semester)
+    with col1:
+
+        st.info(
+            f"Student Name: {student_name}"
+        )
+
+    with col2:
+
+        st.info(
+            f"Semester: {semester}"
+        )
 
     st.write("---")
 
@@ -181,8 +191,12 @@ def student_dashboard():
     st.subheader("Academic Performance")
 
     st.dataframe(
+
         df,
-        use_container_width=True
+
+        use_container_width=True,
+
+        hide_index=True
     )
 
     # -----------------------------------
@@ -197,7 +211,9 @@ def student_dashboard():
 
         risk = row["Risk"]
 
-        st.write(f"Subject: {subject}")
+        st.markdown(
+            f"### 📘 {subject}"
+        )
 
         if risk == "High":
 
@@ -221,43 +237,59 @@ def student_dashboard():
         # SUGGESTIONS
         # -----------------------------------
 
-        st.write("Suggestions:")
+        if risk == "Low":
 
-        if row["Attendance"] < 70:
-
-            st.write(
-                "- Improve attendance"
+            st.success(
+                "No suggestions needed. Performance is stable."
             )
 
-        if row["Internal"] < 15:
+        else:
 
-            st.write(
-                "- Focus on internal preparation"
-            )
+            st.write("Suggestions:")
 
-        if row["Participation"] < 4:
+            suggestions = []
 
-            st.write(
-                "- Participate more in classroom activities"
-            )
+            if row["Attendance"] < 70:
 
-        if row["Assignment"] < 12:
+                suggestions.append(
+                    "Improve attendance"
+                )
 
-            st.write(
-                "- Submit assignments properly"
-            )
+            if row["Internal"] < 15:
 
-        if row["Quiz"] < 10:
+                suggestions.append(
+                    "Focus on internal preparation"
+                )
 
-            st.write(
-                "- Improve quiz performance"
-            )
+            if row["Participation"] < 4:
 
-        if row["Midsem"] < 20:
+                suggestions.append(
+                    "Participate more in classroom activities"
+                )
 
-            st.write(
-                "- Prepare better for mid-sem exams"
-            )
+            if row["Assignment"] < 12:
+
+                suggestions.append(
+                    "Submit assignments properly"
+                )
+
+            if row["Quiz"] < 10:
+
+                suggestions.append(
+                    "Improve quiz performance"
+                )
+
+            if row["Midsem"] < 20:
+
+                suggestions.append(
+                    "Prepare better for mid-sem exams"
+                )
+
+            for suggestion in suggestions:
+
+                st.write(
+                    f"• {suggestion}"
+                )
 
         st.write("---")
 
@@ -270,10 +302,8 @@ def student_dashboard():
     for row in performance_data:
 
         st.markdown(
-            f"### {row['Subject']}"
+            f"## 📘 {row['Subject']}"
         )
-
-        # Attendance
 
         st.write("Attendance")
 
@@ -281,15 +311,11 @@ def student_dashboard():
             int(row["Attendance"])
         )
 
-        # Internal Marks
-
         st.write("Internal Marks")
 
         st.progress(
             min(int(row["Internal"] * 4), 100)
         )
-
-        # Assignment Score
 
         st.write("Assignment Score")
 
@@ -297,15 +323,11 @@ def student_dashboard():
             min(int(row["Assignment"] * 4), 100)
         )
 
-        # Quiz Score
-
         st.write("Quiz Score")
 
         st.progress(
             min(int(row["Quiz"] * 5), 100)
         )
-
-        # Midsem Marks
 
         st.write("Midsem Marks")
 
@@ -316,7 +338,7 @@ def student_dashboard():
         st.write("---")
 
     # -----------------------------------
-    # RADAR STYLE ANALYTICS
+    # PERFORMANCE ANALYTICS
     # -----------------------------------
 
     st.subheader("Performance Analytics")
@@ -324,50 +346,54 @@ def student_dashboard():
     col1, col2 = st.columns(2)
 
     # -----------------------------------
-    # LEFT ANALYTICS
+    # ACADEMIC METRICS
     # -----------------------------------
 
     with col1:
 
-        st.markdown("#### Academic Metrics")
+        st.markdown("### Academic Metrics")
 
         academic_df = pd.DataFrame({
 
             "Metrics": [
 
+                "Assignment",
+
                 "Attendance",
 
                 "Internal",
-
-                "Assignment",
 
                 "Midsem"
             ],
 
             "Scores": [
 
+                df["Assignment"].mean() * 4,
+
                 df["Attendance"].mean(),
 
                 df["Internal"].mean() * 4,
-
-                df["Assignment"].mean() * 4,
 
                 df["Midsem"].mean() * 2.5
             ]
         })
 
         st.line_chart(
-            academic_df.set_index("Metrics"),
+
+            academic_df.set_index(
+                "Metrics"
+            ),
+
             height=250
         )
 
     # -----------------------------------
-    # RIGHT ANALYTICS
+    # ENGAGEMENT METRICS
     # -----------------------------------
 
     with col2:
 
-        st.markdown("#### Engagement Metrics")
+        st.markdown("### Engagement Metrics")
 
         engagement_df = pd.DataFrame({
 
@@ -375,18 +401,26 @@ def student_dashboard():
 
                 "Participation",
 
-                "Quiz"
+                "Quiz",
+
+                "Attendance"
             ],
 
             "Scores": [
 
                 df["Participation"].mean() * 10,
 
-                df["Quiz"].mean() * 5
+                df["Quiz"].mean() * 5,
+
+                df["Attendance"].mean()
             ]
         })
 
         st.line_chart(
-            engagement_df.set_index("Metrics"),
+
+            engagement_df.set_index(
+                "Metrics"
+            ),
+
             height=250
         )
