@@ -113,8 +113,7 @@ def initialize_database():
 
     db_folder = os.path.join(BASE_DIR, "..", "database")
 
-    if not os.path.exists(db_folder):
-        os.makedirs(db_folder)
+    os.makedirs(db_folder, exist_ok=True)
 
     create_tables()
 
