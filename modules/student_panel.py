@@ -314,3 +314,79 @@ def student_dashboard():
         )
 
         st.write("---")
+
+    # -----------------------------------
+    # RADAR STYLE ANALYTICS
+    # -----------------------------------
+
+    st.subheader("Performance Analytics")
+
+    col1, col2 = st.columns(2)
+
+    # -----------------------------------
+    # LEFT ANALYTICS
+    # -----------------------------------
+
+    with col1:
+
+        st.markdown("#### Academic Metrics")
+
+        academic_df = pd.DataFrame({
+
+            "Metrics": [
+
+                "Attendance",
+
+                "Internal",
+
+                "Assignment",
+
+                "Midsem"
+            ],
+
+            "Scores": [
+
+                df["Attendance"].mean(),
+
+                df["Internal"].mean() * 4,
+
+                df["Assignment"].mean() * 4,
+
+                df["Midsem"].mean() * 2.5
+            ]
+        })
+
+        st.line_chart(
+            academic_df.set_index("Metrics"),
+            height=250
+        )
+
+    # -----------------------------------
+    # RIGHT ANALYTICS
+    # -----------------------------------
+
+    with col2:
+
+        st.markdown("#### Engagement Metrics")
+
+        engagement_df = pd.DataFrame({
+
+            "Metrics": [
+
+                "Participation",
+
+                "Quiz"
+            ],
+
+            "Scores": [
+
+                df["Participation"].mean() * 10,
+
+                df["Quiz"].mean() * 5
+            ]
+        })
+
+        st.line_chart(
+            engagement_df.set_index("Metrics"),
+            height=250
+        )
