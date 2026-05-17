@@ -12,131 +12,80 @@ from modules.student_panel import student_dashboard
 # ===================================
 
 st.set_page_config(
-
     page_title="AI Academic Risk Monitoring System",
-
     page_icon="🎓",
-
     layout="wide"
 )
-
-# ===================================
-# SESSION STATE
-# ===================================
-
-if "role" not in st.session_state:
-
-    st.session_state.role = None
-
-if "username" not in st.session_state:
-
-    st.session_state.username = None
 
 # ===================================
 # CUSTOM CSS
 # ===================================
 
 st.markdown("""
-
 <style>
 
-[data-testid="stAppViewContainer"] {
-
-    background-color: #050816;
+[data-testid="stSidebar"]{
+    background-color:#1e1e2f;
 }
 
-.main-title {
-
-    text-align: center;
-
-    font-size: 52px;
-
-    font-weight: bold;
-
-    color: white;
-
-    margin-top: 20px;
-
-    margin-bottom: 10px;
+.main-title{
+    font-size:48px;
+    font-weight:700;
+    color:white;
+    margin-bottom:10px;
 }
 
-.sub-title {
-
-    text-align: center;
-
-    color: #94A3B8;
-
-    font-size: 20px;
-
-    margin-bottom: 40px;
+.subtitle{
+    color:#aaaaaa;
+    font-size:18px;
+    margin-bottom:40px;
 }
 
-.login-box {
-
-    background-color: #0F172A;
-
-    padding: 40px;
-
-    border-radius: 20px;
-
-    box-shadow: 0px 0px 25px rgba(0,0,0,0.4);
+.login-card{
+    background:#111827;
+    padding:40px;
+    border-radius:20px;
+    box-shadow:0px 0px 25px rgba(0,0,0,0.4);
 }
 
-.stTextInput > div > div > input {
-
-    background-color: #111827;
-
-    color: white;
-
-    border-radius: 10px;
-
-    border: 1px solid #334155;
-
-    padding: 12px;
-}
-
-.stButton > button {
-
-    width: 100%;
-
-    background: linear-gradient(
+.stButton>button{
+    width:100%;
+    border-radius:12px;
+    height:50px;
+    font-size:18px;
+    font-weight:600;
+    background:linear-gradient(
         90deg,
-        #2563EB,
-        #7C3AED
+        #4f46e5,
+        #7c3aed
     );
-
-    color: white;
-
-    border: none;
-
-    border-radius: 10px;
-
-    padding: 12px;
-
-    font-size: 18px;
-
-    font-weight: bold;
+    color:white;
+    border:none;
 }
 
-.stButton > button:hover {
-
-    background: linear-gradient(
-        90deg,
-        #1D4ED8,
-        #6D28D9
-    );
-
-    color: white;
+.stButton>button:hover{
+    opacity:0.9;
 }
 
-.sidebar .sidebar-content {
-
-    background-color: #0F172A;
+.metric-card{
+    background:#111827;
+    padding:20px;
+    border-radius:16px;
+    text-align:center;
 }
 
 </style>
-
 """, unsafe_allow_html=True)
+
+# ===================================
+# SESSION VARIABLES
+# ===================================
+
+if "role" not in st.session_state:
+    st.session_state.role = None
+
+if "username" not in st.session_state:
+    st.session_state.username = None
 
 # ===================================
 # LOGIN PAGE
@@ -144,40 +93,23 @@ st.markdown("""
 
 if st.session_state.role is None:
 
-    st.markdown(
-
-        """
-        <div class="main-title">
-
-        🎓 AI Academic Risk Monitoring System
-
-        </div>
-        """,
-
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-
-        """
-        <div class="sub-title">
-
-        Smart Student Performance Tracking and Early Warning Platform
-
-        </div>
-        """,
-
-        unsafe_allow_html=True
-    )
-
-    col1, col2, col3 = st.columns([1, 1.3, 1])
+    col1, col2, col3 = st.columns([1,2,1])
 
     with col2:
 
-        st.markdown(
-            '<div class="login-box">',
-            unsafe_allow_html=True
-        )
+        st.markdown("""
+        <div class="main-title">
+        🎓 AI Academic Risk Monitoring System
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="subtitle">
+        AI-Powered Early Warning and Student Performance Monitoring
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
         st.subheader("Login")
 
@@ -186,13 +118,9 @@ if st.session_state.role is None:
         )
 
         password = st.text_input(
-
             "Password",
-
             type="password"
         )
-
-        st.markdown("")
 
         if st.button("Login"):
 
@@ -204,7 +132,6 @@ if st.session_state.role is None:
             if role:
 
                 st.session_state.role = role
-
                 st.session_state.username = username
 
                 st.success(
@@ -216,16 +143,13 @@ if st.session_state.role is None:
             else:
 
                 st.error(
-                    "Invalid Username or Password"
+                    "Invalid username or password"
                 )
 
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # ===================================
-# MAIN DASHBOARD
+# DASHBOARD
 # ===================================
 
 else:
@@ -243,10 +167,10 @@ else:
     st.sidebar.markdown("---")
 
     # ===================================
-    # ROUTING
+    # ROLE ROUTING
     # ===================================
 
-    if st.session_state.role == "Admin":
+    if st.session_state.role == "Academic Coordinator":
 
         admin_dashboard()
 
@@ -271,7 +195,6 @@ else:
     if st.sidebar.button("Logout"):
 
         st.session_state.role = None
-
         st.session_state.username = None
 
         st.rerun()

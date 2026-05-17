@@ -1,48 +1,20 @@
 from utils.database import supabase
 
-# -----------------------------------
-# AUTHENTICATION FUNCTION
-# -----------------------------------
 
-def authenticate(
+def authenticate(username, password):
 
-    username,
+    response = supabase.table("users").select("*").eq(
+        "username",
+        username
+    ).eq(
+        "password",
+        password
+    ).execute()
 
-    password
-):
+    data = response.data
 
-    try:
+    if len(data) > 0:
 
-        # -----------------------------------
-        # FETCH USER
-        # -----------------------------------
+        return data[0]["role"]
 
-        response = supabase.table(
-            "users"
-        ).select("*").eq(
-            "username",
-            username
-        ).eq(
-            "password",
-            password
-        ).execute()
-
-        users = response.data
-
-        # -----------------------------------
-        # CHECK USER
-        # -----------------------------------
-
-        if users:
-
-            return users[0]["role"]
-
-        else:
-
-            return None
-
-    except Exception as e:
-
-        print("Authentication Error:", e)
-
-        return None
+    return None
