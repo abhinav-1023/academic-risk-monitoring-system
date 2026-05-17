@@ -36,7 +36,7 @@ def admin_dashboard():
     if menu == "Create Teacher":
 
         st.markdown(
-            "## 👨‍🏫 Create Teacher"
+            "##  Create Teacher"
         )
 
         col1, col2 = st.columns(2)
@@ -80,7 +80,7 @@ def admin_dashboard():
 
         if st.button(
 
-            "➕ Create Teacher",
+            " Create Teacher",
 
             use_container_width=True
         ):
@@ -139,7 +139,7 @@ def admin_dashboard():
     elif menu == "Create Student":
 
         st.markdown(
-            "## 👨‍🎓 Create Student"
+            "##  Create Student"
         )
 
         col1, col2 = st.columns(2)
@@ -186,7 +186,7 @@ def admin_dashboard():
 
         if st.button(
 
-            "➕ Create Student",
+            " Create Student",
 
             use_container_width=True
         ):
@@ -245,7 +245,7 @@ def admin_dashboard():
     elif menu == "Create Subject":
 
         st.markdown(
-            "## 📚 Create Subject"
+            "##  Create Subject"
         )
 
         col1, col2 = st.columns(2)
@@ -269,7 +269,7 @@ def admin_dashboard():
 
         if st.button(
 
-            "➕ Create Subject",
+            " Create Subject",
 
             use_container_width=True
         ):
@@ -360,7 +360,7 @@ def admin_dashboard():
 
         if st.button(
 
-            "✅ Assign Teacher",
+            " Assign Teacher",
 
             use_container_width=True
         ):
