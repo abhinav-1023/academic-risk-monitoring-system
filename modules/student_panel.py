@@ -2,90 +2,68 @@ import streamlit as st
 import pandas as pd
 
 from utils.database import supabase
-from modules.prediction import predict_risk
 
-# -----------------------------------
-# STUDENT DASHBOARD
-# -----------------------------------
 
 def student_dashboard():
 
-    st.title("Student Performance Dashboard")
+    st.header("AI Academic Risk Monitoring System")
 
     username = st.session_state.username
 
     # -----------------------------------
-    # GET USER
+    # GET STUDENT INFO
     # -----------------------------------
 
-    user_response = supabase.table(
-        "users"
+    response = supabase.table(
+        "students"
     ).select("*").eq(
-        "username",
+        "student_name",
         username
     ).execute()
 
-    user_data = user_response.data
+    students = response.data
 
-    if not user_data:
+    if not students:
 
-        st.warning("User not found")
-
+        st.error("Student not found")
         return
 
-    user_id = user_data[0]["id"]
-
-    # -----------------------------------
-    # GET STUDENT
-    # -----------------------------------
-
-    student_response = supabase.table(
-        "students"
-    ).select("*").eq(
-        "user_id",
-        user_id
-    ).execute()
-
-    student_data = student_response.data
-
-    if not student_data:
-
-        st.warning("Student record not found")
-
-        return
-
-    student = student_data[0]
+    student = students[0]
 
     student_id = student["id"]
-
-    student_name = student["student_name"]
 
     semester = student["semester"]
 
     # -----------------------------------
-    # STUDENT INFORMATION
+    # STUDENT INFO
     # -----------------------------------
 
-    st.subheader("Student Information")
+    st.subheader("Student Dashboard")
 
     col1, col2 = st.columns(2)
 
     with col1:
 
-        st.info(
-            f"Student Name: {student_name}"
+        st.markdown(
+            f"""
+            ### 👤 Student Information
+
+            **Name:** {username}
+
+            **Semester:** {semester}
+            """
         )
 
     with col2:
 
         st.info(
-            f"Semester: {semester}"
+            "Track your academic performance and risk level in real time."
         )
 
-    st.write("---")
+    st.markdown("---")
 
     # -----------------------------------
-    # FETCH MARKS
+    # GET MARKS
     # -----------------------------------
 
     marks_response = supabase.table(
@@ -99,105 +77,77 @@ def student_dashboard():
 
     if not marks_data:
 
-        st.info("No marks available yet")
-
+        st.warning("No academic data available")
         return
 
     # -----------------------------------
-    # PERFORMANCE DATA
+    # GET SUBJECT NAMES
+    # -----------------------------------
+
+    subjects_response = supabase.table(
+        "subjects"
+    ).select("*").execute()
+
+    subjects = subjects_response.data
+
+    subject_map = {}
+
+    for sub in subjects:
+
+        subject_map[sub["id"]] = sub["subject_name"]
+
+    # -----------------------------------
+    # PERFORMANCE TABLE
     # -----------------------------------
 
     performance_data = []
 
-    for mark in marks_data:
-
-        subject_id = mark["subject_id"]
-
-        # -----------------------------------
-        # GET SUBJECT NAME
-        # -----------------------------------
-
-        subject_response = supabase.table(
-            "subjects"
-        ).select("*").eq(
-            "id",
-            subject_id
-        ).execute()
-
-        subject_data = subject_response.data
-
-        subject_name = "Unknown"
-
-        if subject_data:
-
-            subject_name = subject_data[0]["subject_name"]
-
-        attendance = mark["attendance"]
-
-        internal = mark["internal_marks"]
-
-        participation = mark["participation"]
-
-        assignment = mark["assignment_score"]
-
-        quiz = mark["quiz_score"]
-
-        midsem = mark["midsem_marks"]
-
-        # -----------------------------------
-        # PREDICT RISK
-        # -----------------------------------
-
-        risk = predict_risk(
-
-            attendance,
-
-            internal,
-
-            participation,
-
-            assignment,
-
-            quiz,
-
-            midsem
-        )
+    for row in marks_data:
 
         performance_data.append({
 
-            "Subject": subject_name,
+            "Subject":
+                subject_map.get(
+                    row["subject_id"],
+                    "Unknown"
+                ),
 
-            "Attendance": attendance,
+            "Attendance":
+                row["attendance"],
 
-            "Internal": internal,
+            "Internal":
+                row["internal_marks"],
 
-            "Participation": participation,
+            "Participation":
+                row["participation"],
 
-            "Assignment": assignment,
+            "Assignment":
+                row["assignment_score"],
 
-            "Quiz": quiz,
+            "Quiz":
+                row["quiz_score"],
 
-            "Midsem": midsem,
+            "Midsem":
+                row["midsem_marks"],
 
-            "Risk": risk
+            "Risk":
+                row["risk_level"]
         })
 
-    # -----------------------------------
-    # DISPLAY TABLE
-    # -----------------------------------
-
     df = pd.DataFrame(performance_data)
+
+    # -----------------------------------
+    # ACADEMIC PERFORMANCE
+    # -----------------------------------
 
     st.subheader("Academic Performance")
 
     st.dataframe(
-
         df,
-
-        use_container_width=True,
-
-        hide_index=True
+        use_container_width=True
     )
+
+    st.markdown("---")
 
     # -----------------------------------
     # RISK ANALYSIS
@@ -207,91 +157,87 @@ def student_dashboard():
 
     for row in performance_data:
 
-        subject = row["Subject"]
+        st.markdown(
+            f"### 📘 {row['Subject']}"
+        )
 
         risk = row["Risk"]
-
-        st.markdown(
-            f"### 📘 {subject}"
-        )
 
         if risk == "High":
 
             st.error(
-                "High Academic Risk"
+                "🔴 High Academic Risk"
             )
 
         elif risk == "Medium":
 
             st.warning(
-                "Medium Academic Risk"
+                "🟠 Medium Academic Risk"
             )
 
         else:
 
             st.success(
-                "Low Academic Risk"
+                "🟢 Low Academic Risk"
             )
 
         # -----------------------------------
         # SUGGESTIONS
         # -----------------------------------
 
-        if risk == "Low":
+        suggestions = []
+
+        if row["Attendance"] < 70:
+
+            suggestions.append(
+                "Improve attendance"
+            )
+
+        if row["Internal"] < 15:
+
+            suggestions.append(
+                "Focus on internal preparation"
+            )
+
+        if row["Participation"] < 4:
+
+            suggestions.append(
+                "Participate more in classroom activities"
+            )
+
+        if row["Assignment"] < 10:
+
+            suggestions.append(
+                "Submit assignments properly"
+            )
+
+        if row["Quiz"] < 8:
+
+            suggestions.append(
+                "Improve quiz performance"
+            )
+
+        if row["Midsem"] < 18:
+
+            suggestions.append(
+                "Prepare better for mid-sem exams"
+            )
+
+        st.markdown("#### Suggestions")
+
+        if len(suggestions) == 0:
 
             st.success(
-                "No suggestions needed. Performance is stable."
+                "✅ No suggestions needed. Performance is good."
             )
 
         else:
 
-            st.write("Suggestions:")
+            for item in suggestions:
 
-            suggestions = []
+                st.write(f"• {item}")
 
-            if row["Attendance"] < 70:
-
-                suggestions.append(
-                    "Improve attendance"
-                )
-
-            if row["Internal"] < 15:
-
-                suggestions.append(
-                    "Focus on internal preparation"
-                )
-
-            if row["Participation"] < 4:
-
-                suggestions.append(
-                    "Participate more in classroom activities"
-                )
-
-            if row["Assignment"] < 12:
-
-                suggestions.append(
-                    "Submit assignments properly"
-                )
-
-            if row["Quiz"] < 10:
-
-                suggestions.append(
-                    "Improve quiz performance"
-                )
-
-            if row["Midsem"] < 20:
-
-                suggestions.append(
-                    "Prepare better for mid-sem exams"
-                )
-
-            for suggestion in suggestions:
-
-                st.write(
-                    f"• {suggestion}"
-                )
-
-        st.write("---")
+        st.markdown("---")
 
     # -----------------------------------
     # PERFORMANCE VISUALIZATION
@@ -302,40 +248,60 @@ def student_dashboard():
     for row in performance_data:
 
         st.markdown(
-            f"## 📘 {row['Subject']}"
+            f"### 📘 {row['Subject']}"
         )
 
-        st.write("Attendance")
+        col1, col2 = st.columns(2)
 
-        st.progress(
-            int(row["Attendance"])
-        )
+        # -----------------------------------
+        # LEFT SIDE
+        # -----------------------------------
 
-        st.write("Internal Marks")
+        with col1:
 
-        st.progress(
-            min(int(row["Internal"] * 4), 100)
-        )
+            st.caption("Attendance")
 
-        st.write("Assignment Score")
+            st.progress(
+                int(row["Attendance"])
+            )
 
-        st.progress(
-            min(int(row["Assignment"] * 4), 100)
-        )
+            st.caption("Internal")
 
-        st.write("Quiz Score")
+            st.progress(
+                min(int(row["Internal"] * 4), 100)
+            )
 
-        st.progress(
-            min(int(row["Quiz"] * 5), 100)
-        )
+            st.caption("Assignment")
 
-        st.write("Midsem Marks")
+            st.progress(
+                min(int(row["Assignment"] * 4), 100)
+            )
 
-        st.progress(
-            min(int(row["Midsem"] * 2.5), 100)
-        )
+        # -----------------------------------
+        # RIGHT SIDE
+        # -----------------------------------
 
-        st.write("---")
+        with col2:
+
+            st.caption("Quiz")
+
+            st.progress(
+                min(int(row["Quiz"] * 5), 100)
+            )
+
+            st.caption("Midsem")
+
+            st.progress(
+                min(int(row["Midsem"] * 2.5), 100)
+            )
+
+            st.caption("Participation")
+
+            st.progress(
+                min(int(row["Participation"] * 10), 100)
+            )
+
+        st.markdown("---")
 
     # -----------------------------------
     # PERFORMANCE ANALYTICS
@@ -351,7 +317,9 @@ def student_dashboard():
 
     with col1:
 
-        st.markdown("### Academic Metrics")
+        st.markdown(
+            "### Academic Metrics"
+        )
 
         academic_df = pd.DataFrame({
 
@@ -378,13 +346,13 @@ def student_dashboard():
             ]
         })
 
-        st.line_chart(
+        st.area_chart(
 
             academic_df.set_index(
                 "Metrics"
             ),
 
-            height=250
+            height=220
         )
 
     # -----------------------------------
@@ -393,7 +361,9 @@ def student_dashboard():
 
     with col2:
 
-        st.markdown("### Engagement Metrics")
+        st.markdown(
+            "### Engagement Metrics"
+        )
 
         engagement_df = pd.DataFrame({
 
@@ -416,11 +386,11 @@ def student_dashboard():
             ]
         })
 
-        st.line_chart(
+        st.area_chart(
 
             engagement_df.set_index(
                 "Metrics"
             ),
 
-            height=250
+            height=220
         )
