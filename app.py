@@ -24,7 +24,7 @@ st.set_page_config(
 # -----------------------------------
 
 st.title(
-    "🎓 AI-Based Academic Risk Monitoring and Early Warning System"
+    "AI Academic Risk Monitoring System"
 )
 
 # -----------------------------------

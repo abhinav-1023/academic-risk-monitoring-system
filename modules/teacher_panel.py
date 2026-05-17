@@ -9,25 +9,83 @@ def teacher_dashboard():
 
     st.header("Teacher Dashboard")
 
-    
-    # GET SUBJECTS
-    
+    username = st.session_state.username
 
-    response = supabase.table("subjects").select("*").execute()
+    # -----------------------------------
+    # GET LOGGED IN TEACHER
+    # -----------------------------------
+
+    user_response = supabase.table(
+        "users"
+    ).select("*").eq(
+        "username",
+        username
+    ).execute()
+
+    user_data = user_response.data
+
+    if not user_data:
+
+        st.warning("Teacher not found")
+
+        return
+
+    user_id = user_data[0]["id"]
+
+    # -----------------------------------
+    # GET TEACHER RECORD
+    # -----------------------------------
+
+    teacher_response = supabase.table(
+        "teachers"
+    ).select("*").eq(
+        "user_id",
+        user_id
+    ).execute()
+
+    teacher_data = teacher_response.data
+
+    if not teacher_data:
+
+        st.warning("Teacher record not found")
+
+        return
+
+    teacher_id = teacher_data[0]["id"]
+
+    # -----------------------------------
+    # GET ONLY ASSIGNED SUBJECTS
+    # -----------------------------------
+
+    response = supabase.table(
+        "subjects"
+    ).select("*").eq(
+        "teacher_id",
+        teacher_id
+    ).execute()
 
     subjects = response.data
 
     if not subjects:
-        st.warning("No subjects found")
+
+        st.warning(
+            "No subjects assigned"
+        )
+
         return
 
     subject_dict = {
-        s["subject_name"]: (s["id"], s["semester"])
+
+        s["subject_name"]:
+        (s["id"], s["semester"])
+
         for s in subjects
     }
 
     subject_name = st.selectbox(
+
         "Select Subject",
+
         list(subject_dict.keys())
     )
 
@@ -35,11 +93,13 @@ def teacher_dashboard():
 
     st.write("Semester:", semester)
 
-    
+    # -----------------------------------
     # GET STUDENTS
-    
+    # -----------------------------------
 
-    response = supabase.table("students").select("*").eq(
+    response = supabase.table(
+        "students"
+    ).select("*").eq(
         "semester",
         semester
     ).execute()
@@ -47,17 +107,21 @@ def teacher_dashboard():
     students = response.data
 
     if not students:
+
         st.warning("No students found")
+
         return
 
     student_names = [
+
         s["student_name"]
+
         for s in students
     ]
 
-    
-    # DATA ENTRY TABLE
-    
+    # -----------------------------------
+    # DATA ENTRY
+    # -----------------------------------
 
     df = pd.DataFrame({
 
@@ -77,13 +141,15 @@ def teacher_dashboard():
     })
 
     edited_df = st.data_editor(
+
         df,
+
         use_container_width=True
     )
 
-    
+    # -----------------------------------
     # SAVE MARKS
-    
+    # -----------------------------------
 
     if st.button("Save Marks"):
 
@@ -103,50 +169,110 @@ def teacher_dashboard():
 
             midsem = row["Midsem"]
 
-            
-            # PREDICT RISK
-            
+            # -----------------------------------
+            # PREDICT
+            # -----------------------------------
 
             risk = predict_risk(
+
                 attendance,
+
                 internal,
+
                 participation,
+
                 assignment,
+
                 quiz,
+
                 midsem
             )
 
-            
-            # SAVE TO SUPABASE
-            
+            # -----------------------------------
+            # CHECK EXISTING RECORD
+            # -----------------------------------
 
-            supabase.table("marks").insert({
+            existing = supabase.table(
+                "marks"
+            ).select("*").eq(
+                "student_id",
+                student_id
+            ).eq(
+                "subject_id",
+                subject_id
+            ).execute()
 
-                "student_id": student_id,
+            # -----------------------------------
+            # UPDATE
+            # -----------------------------------
 
-                "subject_id": subject_id,
+            if existing.data:
 
-                "attendance": attendance,
+                supabase.table(
+                    "marks"
+                ).update({
 
-                "internal_marks": internal,
+                    "attendance": attendance,
 
-                "participation": participation,
+                    "internal_marks": internal,
 
-                "assignment_score": assignment,
+                    "participation": participation,
 
-                "quiz_score": quiz,
+                    "assignment_score": assignment,
 
-                "midsem_marks": midsem,
+                    "quiz_score": quiz,
 
-                "risk_level": risk
+                    "midsem_marks": midsem,
 
-            }).execute()
+                    "risk_level": risk
+
+                }).eq(
+
+                    "student_id",
+                    student_id
+
+                ).eq(
+
+                    "subject_id",
+                    subject_id
+
+                ).execute()
+
+            # -----------------------------------
+            # INSERT
+            # -----------------------------------
+
+            else:
+
+                supabase.table(
+                    "marks"
+                ).insert({
+
+                    "student_id": student_id,
+
+                    "subject_id": subject_id,
+
+                    "attendance": attendance,
+
+                    "internal_marks": internal,
+
+                    "participation": participation,
+
+                    "assignment_score": assignment,
+
+                    "quiz_score": quiz,
+
+                    "midsem_marks": midsem,
+
+                    "risk_level": risk
+
+                }).execute()
 
         st.success("Marks Saved Successfully")
 
-    
+    # -----------------------------------
     # GENERATE REPORT
-    
+    # -----------------------------------
 
     if st.button("Generate Risk Report"):
 
@@ -162,10 +288,13 @@ def teacher_dashboard():
         marks_data = marks_response.data
 
         if not marks_data:
+
             st.warning("No data found")
+
             return
 
         chart_students = []
+
         chart_marks = []
 
         for data in marks_data:
@@ -177,6 +306,7 @@ def teacher_dashboard():
             for s in students:
 
                 if s["id"] == student_id:
+
                     student_name = s["student_name"]
 
             risk = data["risk_level"]
@@ -205,9 +335,9 @@ def teacher_dashboard():
                 data["internal_marks"]
             )
 
-        
+        # -----------------------------------
         # BAR CHART
-        
+        # -----------------------------------
 
         chart_df = pd.DataFrame({
 
