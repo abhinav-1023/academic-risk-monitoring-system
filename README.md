@@ -16,6 +16,7 @@ This project predicts academic risk levels for students using machine learning.
 
 - Python
 - Streamlit
-- SQLite
+- Supabase
+- PostgreSQL
 - Scikit-learn
 - Pandas
